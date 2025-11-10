@@ -4,9 +4,8 @@ import {
   useDisconnect,
   useAccount,
   useSignMessage,
-  useConnectors,
-  useChainId,
-  useSwitchChain,
+  useNetwork,
+  useSwitchNetwork,
 } from "wagmi";
 import { monadTestnet } from "../wagmi";
 import { buildSiweMessage, getBrowserContext } from "../lib/siwe";
@@ -34,20 +33,20 @@ export function LoginModal({
   const requireServerVerify =
     process.env.REACT_APP_SIWE_REQUIRE_SERVER === "true";
   const { isConnected, address } = useAccount();
-  const chainId = useChainId();
+  const { chain } = useNetwork();
+  const chainId = chain?.id ?? monadTestnet.id;
   const [connectLock, setConnectLock] = React.useState<string | null>(null);
-  const { connect, isPending, error: connectError } = useConnect();
-  const connectors = useConnectors();
+  const { connect, isLoading: isPending, error: connectError, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const {
-    switchChain,
-    isPending: switching,
+    switchNetwork: switchChain,
+    isLoading: switching,
     error: switchError,
-  } = useSwitchChain();
+  } = useSwitchNetwork();
   const {
     signMessage,
     data: signature,
-    isPending: signing,
+    isLoading: signing,
     error: signError,
     reset: resetSign,
     isSuccess,
@@ -110,7 +109,7 @@ export function LoginModal({
     ) {
       autoSwitchTriedRef.current = true;
       try {
-        switchChain({ chainId: monadTestnet.id });
+        switchChain?.(monadTestnet.id);
       } catch {}
     }
     if (chainId === monadTestnet.id) {
@@ -253,7 +252,7 @@ export function LoginModal({
                 <div style={{ fontWeight: 600 }}>Wrong network</div>
                 <div>Please switch to Monad Testnet to continue.</div>
                 <button
-                  onClick={() => switchChain({ chainId: monadTestnet.id })}
+                  onClick={() => switchChain?.(monadTestnet.id)}
                   disabled={switching}
                   style={buttonStyle(switching)}
                 >
@@ -282,7 +281,7 @@ export function LoginModal({
                 onClick={() => {
                   if (chainId !== monadTestnet.id) {
                     try {
-                      switchChain({ chainId: monadTestnet.id });
+                      switchChain?.(monadTestnet.id);
                     } catch {}
                     return;
                   }

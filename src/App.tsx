@@ -1,9 +1,10 @@
 import React from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { LoginModal } from "./components/LoginModal";
+import { DiscoveryModal } from "./components/DiscoveryModal";
 import Spline from "@splinetool/react-spline";
 import type { Application } from "@splinetool/runtime";
-import { WagmiProvider } from "wagmi";
+import { WagmiConfig } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "./wagmi";
 
@@ -13,6 +14,7 @@ function SplinePage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = React.useState(false);
   const [signed, setSigned] = React.useState(false);
   const [splineLoaded, setSplineLoaded] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -32,6 +34,12 @@ function SplinePage() {
           target: e.target,
           bubbles: e.bubbles,
         });
+      }
+      
+      // Ouvrir Discovery modal avec la touche "D"
+      if (e.key.toLowerCase() === "d" && !modalOpen) {
+        console.log("🔍 Discovery modal opened with D key");
+        setDiscoveryOpen(true);
       }
     };
 
@@ -135,53 +143,98 @@ function SplinePage() {
         }}
       />
 
-      {/* Bouton disconnect en haut à droite si connecté */}
-      {mounted && isConnected && (
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 1000,
-          }}
-        >
+      {/* Boutons en overlay */}
+      {mounted && (
+        <>
+          {/* Bouton Discovery en haut à gauche */}
           <div
             style={{
-              background: "rgba(0,0,0,0.7)",
-              color: "white",
-              padding: "8px 12px",
-              borderRadius: "20px",
-              fontSize: "12px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              zIndex: 1000,
             }}
           >
-            <span>
-              {address?.slice(0, 6)}...{address?.slice(-4)}
-            </span>
             <button
-              onClick={() => {
-                disconnect();
-                setSigned(false);
-                if (address) {
-                  localStorage.removeItem(`sherlock_auth_${address}`);
-                }
-              }}
+              onClick={() => setDiscoveryOpen(true)}
               style={{
-                background: "rgba(255,255,255,0.2)",
+                background: "rgba(0,100,255,0.9)",
                 color: "white",
                 border: "none",
-                padding: "2px 6px",
-                borderRadius: "10px",
-                fontSize: "10px",
+                padding: "12px 16px",
+                borderRadius: "25px",
+                fontSize: "14px",
+                fontWeight: "bold",
                 cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 12px rgba(0,100,255,0.3)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.05)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,100,255,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,100,255,0.3)";
               }}
             >
-              ×
+              🔍 Découvrir dApps
+              <span style={{ fontSize: "10px", opacity: 0.8 }}>(D)</span>
             </button>
           </div>
-        </div>
+
+          {/* Bouton disconnect en haut à droite si connecté */}
+          {isConnected && (
+            <div
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  background: "rgba(0,0,0,0.7)",
+                  color: "white",
+                  padding: "8px 12px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <span>
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </span>
+                <button
+                  onClick={() => {
+                    disconnect();
+                    setSigned(false);
+                    if (address) {
+                      localStorage.removeItem(`sherlock_auth_${address}`);
+                    }
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.2)",
+                    color: "white",
+                    border: "none",
+                    padding: "2px 6px",
+                    borderRadius: "10px",
+                    fontSize: "10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Overlay buttons */}
@@ -246,16 +299,22 @@ function SplinePage() {
           }, 1500);
         }}
       />
+
+      {/* DiscoveryModal */}
+      <DiscoveryModal
+        isOpen={discoveryOpen}
+        onClose={() => setDiscoveryOpen(false)}
+      />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <WagmiProvider config={config}>
+    <WagmiConfig config={config}>
       <QueryClientProvider client={queryClient}>
         <SplinePage />
       </QueryClientProvider>
-    </WagmiProvider>
+    </WagmiConfig>
   );
 }

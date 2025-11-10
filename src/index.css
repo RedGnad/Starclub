@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Reset CSS pour éliminer marges par défaut */
 * {
   margin: 0;

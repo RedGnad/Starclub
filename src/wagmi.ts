@@ -1,9 +1,11 @@
-import { createConfig, http } from "wagmi";
-import { injected, walletConnect } from "wagmi/connectors";
-import { defineChain } from "viem";
+import { createConfig } from "wagmi";
+import { InjectedConnector } from "wagmi/connectors/injected";
+import { WalletConnectConnector } from "wagmi/connectors/walletConnect";
+import { publicProvider } from "wagmi/providers/public";
+import { configureChains } from "wagmi";
 
 // Monad Testnet configuration
-export const monadTestnet = defineChain({
+export const monadTestnet = {
   id: 10143,
   name: "Monad Testnet",
   nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
@@ -19,23 +21,40 @@ export const monadTestnet = defineChain({
     default: { name: "Monad Scan", url: "https://testnet.monadscan.io" },
   },
   testnet: true,
-});
+} as const;
+
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [monadTestnet as any],
+  [publicProvider()]
+);
 
 const projectId = process.env.REACT_APP_WALLETCONNECT_PROJECT_ID;
 
 const connectors = [
-  // Injected covers MetaMask, Rabby, Phantom EVM, Backpack, etc.
-  injected(),
-  // WalletConnect (QR / mobile). Only enabled if projectId provided.
-  ...(projectId ? [walletConnect({ projectId })] : []),
+  new InjectedConnector({
+    chains,
+    options: {
+      name: "Injected",
+      shimDisconnect: true,
+    },
+  }),
 ];
 
-const rpcUrl = process.env.REACT_APP_MONAD_RPC_URL || "https://monad-testnet.g.alchemy.com/v2/GmzSvBUT_o45yt7CzuavK";
+// Only add WalletConnect if projectId is provided
+if (projectId) {
+  connectors.push(
+    new WalletConnectConnector({
+      chains,
+      options: {
+        projectId,
+      },
+    }) as any
+  );
+}
 
 export const config = createConfig({
-  chains: [monadTestnet],
-  transports: {
-    [monadTestnet.id]: http(rpcUrl),
-  },
+  autoConnect: true,
   connectors,
+  publicClient,
+  webSocketPublicClient,
 });
