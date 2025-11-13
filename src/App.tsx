@@ -101,6 +101,39 @@ function SplinePage() {
     }, 50); // 50ms de délai réaliste
   };
 
+  // Fonction pour simuler un appui de touche 'y' (cycle complet keydown + keyup)
+  const simulateKeyY = () => {
+    console.log("🎹 Simulating Y key press from Camera position");
+
+    // Créer les événements keydown et keyup
+    const keydownEvent = new KeyboardEvent("keydown", {
+      key: "y",
+      code: "KeyY",
+      keyCode: 89,
+      which: 89,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const keyupEvent = new KeyboardEvent("keyup", {
+      key: "y",
+      code: "KeyY",
+      keyCode: 89,
+      which: 89,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    // Simuler le cycle complet keydown -> keyup
+    document.dispatchEvent(keydownEvent);
+
+    // Petit délai pour simuler un vrai appui de touche
+    setTimeout(() => {
+      document.dispatchEvent(keyupEvent);
+      console.log("🎹 Y key up event dispatched");
+    }, 50); // 50ms de délai réaliste
+  };
+
   // Solution radicale pour bloquer TOUS les événements clavier vers Spline
   React.useEffect(() => {
     if (!mounted) return;
@@ -385,28 +418,36 @@ function SplinePage() {
     splineAppRef.current = app;
     setSplineLoaded(true);
     setDebugInfo(
-      "Spline loaded - Searching for Sphere 5, Sphere 7 & Camera Chog..."
+      "Spline loaded - Searching for Sphere 5, Sphere 7, Sphere 8, Camera Chog & Camera Yaki..."
     );
 
     // États pour suivre les positions précédentes et éviter le clignotement
     let previousCameraChogState = false;
     let previousSphere5State = false;
     let previousSphere7State = false;
+    let previousSphere8State = false;
+    let previousCameraState = false;
     let stableDiscoveryState = false;
 
-    // Fonction pour vérifier la position des sphères et objets (Sphere 5, Sphere 7, Camera Chog)
+    // Fonction pour vérifier la position des sphères et objets (Sphere 5, Sphere 7, Sphere 8, Camera Chog, Camera Yaki)
     const checkObjectsPosition = () => {
       try {
         const sphere5 = app.findObjectByName("Sphere 5");
         const sphere7 = app.findObjectByName("Sphere 7");
+        const sphere8 = app.findObjectByName("Sphere 8");
         const cameraChog = app.findObjectByName("Camera Chog");
+        const camera = app.findObjectByName("Camera Yaki");
 
         let sphere5Near = false;
         let sphere7Near = false;
+        let sphere8Near = false;
         let cameraChogActive = false;
+        let cameraActive = false;
         let sphere5Status = "NOT FOUND";
         let sphere7Status = "NOT FOUND";
+        let sphere8Status = "NOT FOUND";
         let cameraChogStatus = "NOT FOUND";
+        let cameraStatus = "NOT FOUND";
 
         // Vérifier Sphere 5 avec hysteresis pour éviter le clignotement
         if (sphere5) {
@@ -450,6 +491,27 @@ function SplinePage() {
           )},${Math.round(sphere7.position.z)} | Distance: ${Math.round(sphere7Distance)}`;
         }
 
+        // Vérifier Sphere 8 avec hysteresis pour éviter le clignotement
+        if (sphere8) {
+          const sphere8Distance = Math.abs(sphere8.position.y - -1000);
+          
+          // Hysteresis : plus strict pour activer (±3), plus tolérant pour désactiver (±8)
+          if (!previousSphere8State && sphere8Distance < 3) {
+            sphere8Near = true; // Activation stricte
+          } else if (previousSphere8State && sphere8Distance < 8) {
+            sphere8Near = true; // Maintien avec tolérance
+          } else {
+            sphere8Near = false;
+          }
+          
+          previousSphere8State = sphere8Near;
+          sphere8Status = `${
+            sphere8Near ? "ACTIVE (y≈-1000)" : "INACTIVE"
+          } | Position: ${Math.round(sphere8.position.x)},${Math.round(
+            sphere8.position.y
+          )},${Math.round(sphere8.position.z)} | Distance: ${Math.round(sphere8Distance)}`;
+        }
+
         // Vérifier Camera Chog - STRICTEMENT y=167.30 (±2 tolérance)
         if (cameraChog) {
           cameraChogActive = Math.abs(cameraChog.position.y - 167.3) < 2;
@@ -467,8 +529,26 @@ function SplinePage() {
           previousCameraChogState = cameraChogActive;
         }
 
-        // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 est à y=-1000
-        const newDiscoveryState = sphere5Near || sphere7Near;
+        // Vérifier Camera Yaki - STRICTEMENT x=-17427.21 (±50 tolérance)
+        if (camera) {
+          const cameraDistance = Math.abs(camera.position.x - (-17427.21));
+          cameraActive = cameraDistance < 50;
+          cameraStatus = `${
+            cameraActive ? "TRIGGER (x≈-17427)" : "IDLE"
+          } | Position: ${Math.round(camera.position.x)},${Math.round(
+            camera.position.y
+          )},${Math.round(camera.position.z)} | Distance: ${Math.round(cameraDistance)}`;
+
+          // Simuler touche Y si Camera Yaki vient d'atteindre la position et ce n'était pas le cas avant
+          if (cameraActive && !previousCameraState) {
+            console.log("🎯 Camera Yaki activated - triggering Y key");
+            simulateKeyY();
+          }
+          previousCameraState = cameraActive;
+        }
+
+        // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
+        const newDiscoveryState = sphere5Near || sphere7Near || sphere8Near;
         
         // Stabilisation pour éviter le clignotement du Discovery modal
         // Ne change l'état que si c'est différent pendant au moins 2 vérifications
@@ -477,7 +557,7 @@ function SplinePage() {
           stableDiscoveryState = newDiscoveryState;
         }
 
-        const status = `S5: ${sphere5Status} | S7: ${sphere7Status} | CChog: ${cameraChogStatus} | Discovery: ${
+        const status = `S5: ${sphere5Status} | S7: ${sphere7Status} | S8: ${sphere8Status} | CChog: ${cameraChogStatus} | Cam: ${cameraStatus} | Discovery: ${
           stableDiscoveryState ? "ACCESSIBLE" : "BLOCKED"
         }`;
         setDebugInfo(status);
