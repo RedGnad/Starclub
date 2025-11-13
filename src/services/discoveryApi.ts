@@ -55,7 +55,7 @@ interface DApp {
 /**
  * Fetch protocols from GitHub monad-crypto repository
  */
-async function fetchGitHubProtocols(): Promise<any[]> {
+async function fetchGitHubProtocols(progressCallback?: (current: number, total: number) => void): Promise<any[]> {
   try {
     console.log("📂 Fetching protocols from GitHub...");
     
@@ -72,65 +72,95 @@ async function fetchGitHubProtocols(): Promise<any[]> {
     );
 
     console.log(`📂 Found ${jsonFiles.length} protocol files in GitHub`);
+    
+    // Notifier le total
+    if (progressCallback) {
+      progressCallback(0, jsonFiles.length);
+    }
 
-    // 2. Fetch each JSON file and transform the data
+    // 2. Fetch files in parallel batches (5 at a time)
     const protocols: any[] = [];
+    const batchSize = 5;
     let processed = 0;
 
-    for (const file of jsonFiles) { // Récupérer tous les protocoles
-      try {
-        processed++;
-        console.log(`📥 Processing ${processed}/${jsonFiles.length}: ${file.name}`);
-        
-        const fileResponse = await fetch(file.download_url);
-        if (!fileResponse.ok) {
-          console.warn(`⚠️  Failed to fetch ${file.name}: ${fileResponse.statusText}`);
-          continue;
+    for (let i = 0; i < jsonFiles.length; i += batchSize) {
+      const batch = jsonFiles.slice(i, i + batchSize);
+      console.log(`📥 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(jsonFiles.length/batchSize)} (${batch.length} files)`);
+      
+      // Fetch batch in parallel
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const fileResponse = await fetch(file.download_url);
+          if (!fileResponse.ok) {
+            console.warn(`⚠️  Failed to fetch ${file.name}: ${fileResponse.statusText}`);
+            return null;
+          }
+          
+          const data: GitHubProtocolData = await fileResponse.json();
+          processed++;
+          
+          // Progress callback
+          if (progressCallback) {
+            progressCallback(processed, jsonFiles.length);
+          }
+          
+          return { file, data };
+        } catch (error) {
+          console.warn(`⚠️  Failed to process ${file.name}:`, error);
+          processed++;
+          if (progressCallback) {
+            progressCallback(processed, jsonFiles.length);
+          }
+          return null;
         }
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Process successful results
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          const { file, data } = result.value;
 
-        // Small delay to avoid rate limiting (only if processing many files)
-        if (processed % 10 === 0 && jsonFiles.length > 20) {
-          console.log("⏳ Brief pause to avoid rate limiting...");
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Skip if not live
+          if (data.live === false) {
+            continue;
+          }
+
+          // Transform addresses object to contracts array
+          const contracts = data.addresses
+            ? Object.entries(data.addresses).map(([name, address]) => ({
+                address,
+                name,
+                type: "UNKNOWN" as const,
+              }))
+            : [];
+
+          // Extract category from categories array
+          const category = data.categories && data.categories.length > 0
+            ? data.categories[0]
+            : "UNKNOWN";
+
+          // Transform to protocol format
+          const protocol = {
+            id: data.name,
+            name: data.name,
+            description: data.description,
+            category: mapCategory(category),
+            website: data.links?.project,
+            github: data.links?.github,
+            twitter: data.links?.twitter,
+            contracts,
+            contractCount: contracts.length,
+          };
+
+          protocols.push(protocol);
         }
-
-        const data: GitHubProtocolData = await fileResponse.json();
-
-        // Skip if not live
-        if (data.live === false) {
-          continue;
-        }
-
-        // Transform addresses object to contracts array
-        const contracts = data.addresses
-          ? Object.entries(data.addresses).map(([name, address]) => ({
-              address,
-              name,
-              type: "UNKNOWN" as const,
-            }))
-          : [];
-
-        // Extract category from categories array
-        const category = data.categories && data.categories.length > 0
-          ? data.categories[0]
-          : "UNKNOWN";
-
-        // Transform to protocol format
-        const protocol = {
-          id: data.name,
-          name: data.name,
-          description: data.description,
-          category: mapCategory(category),
-          website: data.links?.project,
-          github: data.links?.github,
-          twitter: data.links?.twitter,
-          contracts,
-          contractCount: contracts.length,
-        };
-
-        protocols.push(protocol);
-      } catch (error) {
-        console.warn(`⚠️  Failed to process ${file.name}:`, error);
+      }
+      
+      // Small delay between batches to avoid rate limiting
+      if (i + batchSize < jsonFiles.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 
@@ -238,13 +268,13 @@ function generateMetrics(protocol: any, enrichment: any) {
 /**
  * Main function to sync dApps from external sources
  */
-export async function syncDApps(): Promise<DApp[]> {
+export async function syncDApps(progressCallback?: (current: number, total: number) => void): Promise<DApp[]> {
   try {
     console.log("🔄 Starting dApps synchronization...");
 
-    // Fetch data from both sources in parallel
+    // Fetch Google Sheets data in parallel with GitHub
     const [githubProtocols, googleSheetsData] = await Promise.all([
-      fetchGitHubProtocols(),
+      fetchGitHubProtocols(progressCallback),
       fetchGoogleSheetsData(),
     ]);
 
