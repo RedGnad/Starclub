@@ -30,72 +30,97 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
 
 const projectId = process.env.REACT_APP_WALLETCONNECT_PROJECT_ID;
 
-const connectors = [
-  // MetaMask spécifique
-  new InjectedConnector({
+// Créer les connectors avec des IDs uniques pour éviter les doublons
+const createUniqueConnector = (id: string, name: string, getProvider: () => any) => {
+  const connector = new InjectedConnector({
     chains,
     options: {
-      name: "MetaMask",
+      name,
       shimDisconnect: true,
-      getProvider: () => {
-        if (typeof window !== 'undefined' && (window as any).ethereum?.isMetaMask) {
-          return (window as any).ethereum;
+      getProvider,
+    },
+  });
+  // Forcer un ID unique pour éviter les conflits
+  (connector as any).id = id;
+  return connector;
+};
+
+// Ne pas filtrer au moment de la création car window peut ne pas être prêt
+// Le filtrage se fera au moment de la connexion
+const finalConnectors = [
+  // Toujours inclure MetaMask et les autres - ils se désactiveront automatiquement si pas disponibles
+  createUniqueConnector(
+    "metamask",
+    "MetaMask",
+    () => {
+      if (typeof window !== 'undefined' && (window as any).ethereum?.isMetaMask) {
+        return (window as any).ethereum;
+      }
+      return undefined;
+    }
+  ),
+  
+  createUniqueConnector(
+    "rabby",
+    "Rabby", 
+    () => {
+      if (typeof window !== 'undefined' && (window as any).ethereum?.isRabby) {
+        return (window as any).ethereum;
+      }
+      return undefined;
+    }
+  ),
+  
+  createUniqueConnector(
+    "phantom",
+    "Phantom",
+    () => {
+      if (typeof window !== 'undefined' && (window as any).phantom?.ethereum) {
+        return (window as any).phantom.ethereum;
+      }
+      return undefined;
+    }
+  ),
+  
+  createUniqueConnector(
+    "backpack", 
+    "Backpack",
+    () => {
+      if (typeof window !== 'undefined' && (window as any).backpack?.ethereum) {
+        return (window as any).backpack.ethereum;
+      }
+      return undefined;
+    }
+  ),
+  
+  // Haha Wallet - Toujours inclure, la détection se fera au moment de la connexion
+  createUniqueConnector(
+    "haha",
+    "Haha",
+    () => {
+      if (typeof window !== 'undefined') {
+        const ethereum = (window as any).ethereum;
+        const haha = (window as any).haha;
+        
+        // Essayer différentes méthodes de détection
+        if (ethereum?.isHaha) {
+          return ethereum;
         }
-      },
-    },
-  }),
-  // Rabby spécifique
-  new InjectedConnector({
-    chains,
-    options: {
-      name: "Rabby",
-      shimDisconnect: true,
-      getProvider: () => {
-        if (typeof window !== 'undefined' && (window as any).ethereum?.isRabby) {
-          return (window as any).ethereum;
+        if (haha?.ethereum) {
+          return haha.ethereum;
         }
-      },
-    },
-  }),
-  // Phantom (EVM mode) spécifique
-  new InjectedConnector({
-    chains,
-    options: {
-      name: "Phantom",
-      shimDisconnect: true,
-      getProvider: () => {
-        if (typeof window !== 'undefined' && (window as any).phantom?.ethereum) {
-          return (window as any).phantom.ethereum;
+        if (haha && typeof haha.request === 'function') {
+          return haha;
         }
-      },
-    },
-  }),
-  // Backpack spécifique
-  new InjectedConnector({
-    chains,
-    options: {
-      name: "Backpack",
-      shimDisconnect: true,
-      getProvider: () => {
-        if (typeof window !== 'undefined' && (window as any).backpack?.ethereum) {
-          return (window as any).backpack.ethereum;
-        }
-      },
-    },
-  }),
-  // Generic injected pour autres wallets
-  new InjectedConnector({
-    chains,
-    options: {
-      name: "Other Wallet",
-      shimDisconnect: true,
-    },
-  }),
+      }
+      return undefined;
+    }
+  ),
 ];
 
 // Only add WalletConnect if projectId is provided
 if (projectId) {
-  connectors.push(
+  finalConnectors.push(
     new WalletConnectConnector({
       chains,
       options: {
@@ -107,7 +132,7 @@ if (projectId) {
 
 export const config = createConfig({
   autoConnect: true,
-  connectors,
+  connectors: finalConnectors,
   publicClient,
   webSocketPublicClient,
 });

@@ -35,6 +35,34 @@ function SplinePage() {
   // État pour contrôler le blocage des événements Spline
   const [blockSplineEvents, setBlockSplineEvents] = React.useState(false);
 
+  // État pour empêcher la réouverture immédiate après fermeture
+  const [discoveryClosedRecently, setDiscoveryClosedRecently] = React.useState(false);
+  const discoveryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Ouverture automatique du modal Discovery avec délai et protection contre réouverture
+  React.useEffect(() => {
+    if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
+      console.log("🔍 Sphere conditions met - Starting 1s timer for Discovery modal");
+      
+      // Délai de 1 seconde avant ouverture
+      discoveryTimeoutRef.current = setTimeout(() => {
+        // Vérifier à nouveau les conditions après le délai
+        if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
+          console.log("🔍 Auto-opening Discovery modal after 1s delay");
+          setDiscoveryOpen(true);
+        }
+      }, 1000);
+    }
+
+    // Nettoyage du timeout si les conditions changent
+    return () => {
+      if (discoveryTimeoutRef.current) {
+        clearTimeout(discoveryTimeoutRef.current);
+        discoveryTimeoutRef.current = null;
+      }
+    };
+  }, [nearArcadeMachine, discoveryOpen, modalOpen, discoveryClosedRecently]);
+
   // Fonction pour simuler un appui de touche 'm' (cycle complet keydown + keyup)
   const simulateKeyM = () => {
     console.log("🎹 Simulating M key press from Discovery modal close");
@@ -58,14 +86,11 @@ function SplinePage() {
       cancelable: true,
     });
 
-    // Simuler le cycle complet keydown -> keyup
+    // Envoyer les événements avec un petit délai entre eux
     document.dispatchEvent(keydownEvent);
-
-    // Petit délai pour simuler un vrai appui de touche
     setTimeout(() => {
       document.dispatchEvent(keyupEvent);
-      console.log("🎹 M key up event dispatched");
-    }, 50); // 50ms de délai réaliste
+    }, 50);
   };
 
   // Fonction pour simuler un appui de touche 'c' (cycle complet keydown + keyup)
@@ -366,17 +391,6 @@ function SplinePage() {
         });
       }
 
-      // Ouvrir Discovery modal avec la touche "D" (seulement si proche de l'Arcade Machine)
-      if (e.key.toLowerCase() === "d" && !modalOpen) {
-        if (nearArcadeMachine) {
-          console.log(
-            "🔍 Discovery modal opened with D key - Near Arcade Machine"
-          );
-          setDiscoveryOpen(true);
-        } else {
-          console.log("😫 Discovery blocked - Not near Arcade Machine");
-        }
-      }
 
       // Action avec la touche "M"
       if (e.key.toLowerCase() === "m") {
@@ -452,7 +466,7 @@ function SplinePage() {
         // Vérifier Sphere 5 avec hysteresis pour éviter le clignotement
         if (sphere5) {
           const sphere5Distance = Math.abs(sphere5.position.y - -1000);
-          
+
           // Hysteresis : plus strict pour activer (±3), plus tolérant pour désactiver (±8)
           if (!previousSphere5State && sphere5Distance < 3) {
             sphere5Near = true; // Activation stricte
@@ -461,19 +475,21 @@ function SplinePage() {
           } else {
             sphere5Near = false;
           }
-          
+
           previousSphere5State = sphere5Near;
           sphere5Status = `${
             sphere5Near ? "ACTIVE (y≈-1000)" : "INACTIVE"
           } | Position: ${Math.round(sphere5.position.x)},${Math.round(
             sphere5.position.y
-          )},${Math.round(sphere5.position.z)} | Distance: ${Math.round(sphere5Distance)}`;
+          )},${Math.round(sphere5.position.z)} | Distance: ${Math.round(
+            sphere5Distance
+          )}`;
         }
 
         // Vérifier Sphere 7 avec hysteresis pour éviter le clignotement
         if (sphere7) {
           const sphere7Distance = Math.abs(sphere7.position.y - -1000);
-          
+
           // Hysteresis : plus strict pour activer (±3), plus tolérant pour désactiver (±8)
           if (!previousSphere7State && sphere7Distance < 3) {
             sphere7Near = true; // Activation stricte
@@ -482,19 +498,21 @@ function SplinePage() {
           } else {
             sphere7Near = false;
           }
-          
+
           previousSphere7State = sphere7Near;
           sphere7Status = `${
             sphere7Near ? "ACTIVE (y≈-1000)" : "INACTIVE"
           } | Position: ${Math.round(sphere7.position.x)},${Math.round(
             sphere7.position.y
-          )},${Math.round(sphere7.position.z)} | Distance: ${Math.round(sphere7Distance)}`;
+          )},${Math.round(sphere7.position.z)} | Distance: ${Math.round(
+            sphere7Distance
+          )}`;
         }
 
         // Vérifier Sphere 8 avec hysteresis pour éviter le clignotement
         if (sphere8) {
           const sphere8Distance = Math.abs(sphere8.position.y - -1000);
-          
+
           // Hysteresis : plus strict pour activer (±3), plus tolérant pour désactiver (±8)
           if (!previousSphere8State && sphere8Distance < 3) {
             sphere8Near = true; // Activation stricte
@@ -503,13 +521,15 @@ function SplinePage() {
           } else {
             sphere8Near = false;
           }
-          
+
           previousSphere8State = sphere8Near;
           sphere8Status = `${
             sphere8Near ? "ACTIVE (y≈-1000)" : "INACTIVE"
           } | Position: ${Math.round(sphere8.position.x)},${Math.round(
             sphere8.position.y
-          )},${Math.round(sphere8.position.z)} | Distance: ${Math.round(sphere8Distance)}`;
+          )},${Math.round(sphere8.position.z)} | Distance: ${Math.round(
+            sphere8Distance
+          )}`;
         }
 
         // Vérifier Camera Chog - STRICTEMENT y=167.30 (±2 tolérance)
@@ -531,13 +551,15 @@ function SplinePage() {
 
         // Vérifier Camera Yaki - STRICTEMENT x=-17427.21 (±50 tolérance)
         if (camera) {
-          const cameraDistance = Math.abs(camera.position.x - (-17427.21));
+          const cameraDistance = Math.abs(camera.position.x - -17427.21);
           cameraActive = cameraDistance < 50;
           cameraStatus = `${
             cameraActive ? "TRIGGER (x≈-17427)" : "IDLE"
           } | Position: ${Math.round(camera.position.x)},${Math.round(
             camera.position.y
-          )},${Math.round(camera.position.z)} | Distance: ${Math.round(cameraDistance)}`;
+          )},${Math.round(camera.position.z)} | Distance: ${Math.round(
+            cameraDistance
+          )}`;
 
           // Simuler touche Y si Camera Yaki vient d'atteindre la position et ce n'était pas le cas avant
           if (cameraActive && !previousCameraState) {
@@ -549,7 +571,7 @@ function SplinePage() {
 
         // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
         const newDiscoveryState = sphere5Near || sphere7Near || sphere8Near;
-        
+
         // Stabilisation pour éviter le clignotement du Discovery modal
         // Ne change l'état que si c'est différent pendant au moins 2 vérifications
         if (newDiscoveryState !== stableDiscoveryState) {
@@ -648,7 +670,7 @@ function SplinePage() {
     >
       {/* Spline plein écran */}
       <Spline
-        scene="https://prod.spline.design/cZ45U4dQLe-IB-pq/scene.splinecode"
+        scene="https://prod.spline.design/SnxO7ZktKeRsjDgT/scene.splinecode"
         onLoad={onLoad}
         renderOnDemand={false}
         style={{
@@ -662,23 +684,25 @@ function SplinePage() {
         }}
       />
 
-      {/* Debug Overlay */}
+      {/* Debug Overlay - Discret dans le coin */}
       {mounted && process.env.NODE_ENV === "development" && (
         <div
           style={{
             position: "absolute",
-            top: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
+            bottom: "10px",
+            right: "10px",
             zIndex: 1000,
-            background: "rgba(0,0,0,0.8)",
+            background: "rgba(0,0,0,0.6)",
             color: "white",
-            padding: "10px 15px",
-            borderRadius: "8px",
-            fontSize: "12px",
+            padding: "6px 10px",
+            borderRadius: "6px",
+            fontSize: "10px",
             fontFamily: "monospace",
-            maxWidth: "500px",
-            textAlign: "center",
+            maxWidth: "400px",
+            textAlign: "left",
+            opacity: 0.7,
+            backdropFilter: "blur(4px)",
+            border: "1px solid rgba(255,255,255,0.1)",
           }}
         >
           <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
@@ -701,64 +725,6 @@ function SplinePage() {
       {/* Overlay buttons */}
       {mounted && (
         <>
-          {/* Bouton Discovery en haut à gauche */}
-          <div
-            style={{
-              position: "absolute",
-              top: "80px", // Décalé pour éviter le debug overlay
-              left: "20px",
-              zIndex: 1000,
-            }}
-          >
-            <button
-              onClick={() => {
-                if (nearArcadeMachine) {
-                  setDiscoveryOpen(true);
-                } else {
-                  console.log("🚫 Discovery blocked - Not near Arcade Machine");
-                }
-              }}
-              disabled={!nearArcadeMachine}
-              style={{
-                background: nearArcadeMachine
-                  ? "rgba(0,100,255,0.9)"
-                  : "rgba(100,100,100,0.5)",
-                color: nearArcadeMachine ? "white" : "rgba(255,255,255,0.5)",
-                border: "none",
-                padding: "12px 16px",
-                borderRadius: "25px",
-                fontSize: "14px",
-                fontWeight: "bold",
-                cursor: nearArcadeMachine ? "pointer" : "not-allowed",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                boxShadow: nearArcadeMachine
-                  ? "0 4px 12px rgba(0,100,255,0.3)"
-                  : "0 2px 6px rgba(100,100,100,0.2)",
-                transition: "all 0.3s ease",
-                opacity: nearArcadeMachine ? 1 : 0.6,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.05)";
-                e.currentTarget.style.boxShadow =
-                  "0 6px 20px rgba(0,100,255,0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(0,100,255,0.3)";
-              }}
-            >
-              🔍{" "}
-              {nearArcadeMachine
-                ? "Découvrir dApps"
-                : "Approchez-vous de l'Arcade"}
-              <span style={{ fontSize: "10px", opacity: 0.8 }}>
-                {nearArcadeMachine ? "(D)" : ""}
-              </span>
-            </button>
-          </div>
 
           {/* Bouton disconnect en haut à droite si connecté */}
           {isConnected && (
@@ -832,17 +798,6 @@ function SplinePage() {
               >
                 Connect Wallet
               </button>
-            ) : !signed ? (
-              <div
-                style={{
-                  background: "rgba(255,165,0,0.9)",
-                  color: "white",
-                  padding: "12px 24px",
-                  borderRadius: "25px",
-                }}
-              >
-                Please sign message...
-              </div>
             ) : null}
           </div>
         </>
@@ -876,8 +831,23 @@ function SplinePage() {
       {/* DiscoveryModal */}
       <DiscoveryModal
         isOpen={discoveryOpen}
-        onClose={() => setDiscoveryOpen(false)}
-        simulateKeyM={simulateKeyM}
+        onClose={() => {
+          console.log("🔍 Discovery modal closing - Activating cooldown period");
+          setDiscoveryOpen(false);
+          
+          // Simuler les touches M, C et Y lors de la fermeture
+          console.log("🎹 Simulating M, C, Y keys from Discovery modal close");
+          simulateKeyM();
+          setTimeout(() => simulateKeyC(), 100);
+          setTimeout(() => simulateKeyY(), 200);
+          
+          // Activer la protection contre réouverture pendant 1 seconde
+          setDiscoveryClosedRecently(true);
+          setTimeout(() => {
+            console.log("🔍 Discovery cooldown period ended");
+            setDiscoveryClosedRecently(false);
+          }, 1000);
+        }}
       />
     </div>
   );

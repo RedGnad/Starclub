@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { DappCard } from "./DappCard";
+import { DappGridCard } from "./DappGridCard";
+import { DappDetailModal } from "./DappDetailModal";
 import { syncDApps } from "../services/discoveryApi";
 import { getSharedSyncPromise, isGlobalSyncInProgress, createSharedSync, addProgressCallback, removeProgressCallback } from "../utils/syncState";
 
@@ -44,6 +45,20 @@ export function DiscoveryModal({ isOpen, onClose, simulateKeyM }: DiscoveryModal
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [showProgressiveLoading, setShowProgressiveLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // Pour distinguer refresh vs premier chargement
+  const [selectedDapp, setSelectedDapp] = useState<DApp | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  // Ouvrir le modal de détail
+  const openDetailModal = (dapp: DApp) => {
+    setSelectedDapp(dapp);
+    setDetailModalOpen(true);
+  };
+
+  // Fermer le modal de détail
+  const closeDetailModal = () => {
+    setDetailModalOpen(false);
+    setSelectedDapp(null);
+  };
 
   // Charger depuis le cache (permanent pour le dev)
   const loadFromCache = (): DApp[] | null => {
@@ -235,10 +250,27 @@ export function DiscoveryModal({ isOpen, onClose, simulateKeyM }: DiscoveryModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col border border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Liquid Glass Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/20 backdrop-blur-lg"
+        onClick={() => {
+          onClose();
+          simulateKeyM?.();
+        }}
+        style={{
+          backdropFilter: "blur(12px) saturate(150%)",
+          background: "linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(30, 30, 60, 0.2))",
+        }}
+      />
+      
+      {/* Liquid Glass Modal Container */}
+      <div className="glass-discovery-modal relative max-w-5xl w-full max-h-[90vh] flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
+        {/* Glass gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 via-gray-800/70 to-gray-900/90" style={{ backdropFilter: "blur(16px)" }} />
         {/* Header */}
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="relative p-6 border-b border-white/10 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white mb-1">
               🔍 Découverte de dApps
@@ -320,8 +352,8 @@ export function DiscoveryModal({ isOpen, onClose, simulateKeyM }: DiscoveryModal
           </div>
         </div>
 
-        {/* dApps List */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Contenu principal */}
+        <div className="relative flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">
               dApps découvertes ({dapps.length})
@@ -434,14 +466,68 @@ export function DiscoveryModal({ isOpen, onClose, simulateKeyM }: DiscoveryModal
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {dapps.map((dapp, index) => (
-                <DappCard key={dapp.id} dapp={dapp} index={index} />
+                <DappGridCard 
+                  key={dapp.id} 
+                  dapp={dapp} 
+                  index={index} 
+                  onClick={() => openDetailModal(dapp)}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Modal de détail */}
+      <DappDetailModal 
+        dapp={selectedDapp}
+        isOpen={detailModalOpen}
+        onClose={closeDetailModal}
+      />
+
+      <style>{`
+        .glass-discovery-modal {
+          backdrop-filter: blur(20px) saturate(180%);
+          background: linear-gradient(135deg, 
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.05)
+          );
+          box-shadow: 
+            0 0 0 1px rgba(255, 255, 255, 0.1),
+            0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          animation: glass-modal-appear 0.4s ease-out;
+        }
+        
+        @keyframes glass-modal-appear {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(20px);
+            backdrop-filter: blur(0px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            backdrop-filter: blur(20px);
+          }
+        }
+        
+        .glass-discovery-modal::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, 
+            transparent, 
+            rgba(255, 255, 255, 0.3), 
+            transparent
+          );
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   );
 }
