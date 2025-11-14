@@ -2,6 +2,7 @@ import React from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { LoginModal } from "./components/LoginModal";
 import { DiscoveryModal } from "./components/DiscoveryModal";
+import { MissionPanel } from "./components/MissionPanel";
 import { syncDApps } from "./services/discoveryApi";
 import Spline from "@splinetool/react-spline";
 import {
@@ -24,6 +25,7 @@ function SplinePage() {
   const { disconnect } = useDisconnect();
   const [modalOpen, setModalOpen] = React.useState(false);
   const [discoveryOpen, setDiscoveryOpen] = React.useState(false);
+  const [missionsOpen, setMissionsOpen] = React.useState(false);
   const [signed, setSigned] = React.useState(false);
   const [splineLoaded, setSplineLoaded] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -41,15 +43,33 @@ function SplinePage() {
 
   // Ouverture automatique du modal Discovery avec délai et protection contre réouverture
   React.useEffect(() => {
+    console.log("🔍 Discovery useEffect triggered:", {
+      nearArcadeMachine,
+      discoveryOpen,
+      modalOpen,
+      discoveryClosedRecently,
+      missionsOpen
+    });
+    
+    // Le modal de missions ne doit pas bloquer l'ouverture du Discovery modal
     if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
       console.log("🔍 Sphere conditions met - Starting 1s timer for Discovery modal");
       
       // Délai de 1 seconde avant ouverture
       discoveryTimeoutRef.current = setTimeout(() => {
-        // Vérifier à nouveau les conditions après le délai
+        console.log("🔍 Timer finished, checking conditions again:", {
+          nearArcadeMachine,
+          discoveryOpen,
+          modalOpen,
+          discoveryClosedRecently
+        });
+        
+        // Vérifier à nouveau les conditions après le délai (sans tenir compte du modal missions)
         if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
           console.log("🔍 Auto-opening Discovery modal after 1s delay");
           setDiscoveryOpen(true);
+        } else {
+          console.log("🔍 Conditions not met after delay, not opening Discovery modal");
         }
       }, 1000);
     }
@@ -61,7 +81,7 @@ function SplinePage() {
         discoveryTimeoutRef.current = null;
       }
     };
-  }, [nearArcadeMachine, discoveryOpen, modalOpen, discoveryClosedRecently]);
+  }, [nearArcadeMachine, discoveryOpen, modalOpen, discoveryClosedRecently, missionsOpen]);
 
   // Fonction pour simuler un appui de touche 'm' (cycle complet keydown + keyup)
   const simulateKeyM = () => {
@@ -432,7 +452,7 @@ function SplinePage() {
     splineAppRef.current = app;
     setSplineLoaded(true);
     setDebugInfo(
-      "Spline loaded - Searching for Sphere 5, Sphere 7, Sphere 8, Camera Chog & Camera Yaki..."
+      "Spline loaded - Searching for Sphere 5, Sphere 7, Sphere 8, Camera Chog, Camera Yaki & Sphere Daily 1..."
     );
 
     // États pour suivre les positions précédentes et éviter le clignotement
@@ -441,6 +461,7 @@ function SplinePage() {
     let previousSphere7State = false;
     let previousSphere8State = false;
     let previousCameraState = false;
+    let previousSphereDaily1State = false;
     let stableDiscoveryState = false;
 
     // Fonction pour vérifier la position des sphères et objets (Sphere 5, Sphere 7, Sphere 8, Camera Chog, Camera Yaki)
@@ -451,17 +472,20 @@ function SplinePage() {
         const sphere8 = app.findObjectByName("Sphere 8");
         const cameraChog = app.findObjectByName("Camera Chog");
         const camera = app.findObjectByName("Camera Yaki");
+        const sphereDaily1 = app.findObjectByName("Sphere Daily 1");
 
         let sphere5Near = false;
         let sphere7Near = false;
         let sphere8Near = false;
         let cameraChogActive = false;
         let cameraActive = false;
+        let sphereDaily1Active = false;
         let sphere5Status = "NOT FOUND";
         let sphere7Status = "NOT FOUND";
         let sphere8Status = "NOT FOUND";
         let cameraChogStatus = "NOT FOUND";
         let cameraStatus = "NOT FOUND";
+        let sphereDaily1Status = "NOT FOUND";
 
         // Vérifier Sphere 5 avec hysteresis pour éviter le clignotement
         if (sphere5) {
@@ -569,6 +593,29 @@ function SplinePage() {
           previousCameraState = cameraActive;
         }
 
+        // Vérifier Sphere Daily 1 pour les missions quotidiennes (y = -2000)
+        if (sphereDaily1) {
+          const sphereDaily1Distance = Math.abs(sphereDaily1.position.y - -2000);
+          sphereDaily1Active = sphereDaily1Distance < 50;
+          sphereDaily1Status = `${
+            sphereDaily1Active ? "MISSIONS ACTIVE (y≈-2000)" : "IDLE"
+          } | Position: ${Math.round(sphereDaily1.position.x)},${Math.round(
+            sphereDaily1.position.y
+          )},${Math.round(sphereDaily1.position.z)} | Distance: ${Math.round(
+            sphereDaily1Distance
+          )}`;
+
+          // Ouvrir/fermer le modal missions selon la position
+          if (sphereDaily1Active && !previousSphereDaily1State) {
+            console.log("🎯 Sphere Daily 1 activated - opening missions modal");
+            setMissionsOpen(true);
+          } else if (!sphereDaily1Active && previousSphereDaily1State) {
+            console.log("🎯 Sphere Daily 1 deactivated - closing missions modal");
+            setMissionsOpen(false);
+          }
+          previousSphereDaily1State = sphereDaily1Active;
+        }
+
         // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
         const newDiscoveryState = sphere5Near || sphere7Near || sphere8Near;
 
@@ -579,9 +626,9 @@ function SplinePage() {
           stableDiscoveryState = newDiscoveryState;
         }
 
-        const status = `S5: ${sphere5Status} | S7: ${sphere7Status} | S8: ${sphere8Status} | CChog: ${cameraChogStatus} | Cam: ${cameraStatus} | Discovery: ${
+        const status = `S5: ${sphere5Status} | S7: ${sphere7Status} | S8: ${sphere8Status} | CChog: ${cameraChogStatus} | Cam: ${cameraStatus} | Daily1: ${sphereDaily1Status} | Discovery: ${
           stableDiscoveryState ? "ACCESSIBLE" : "BLOCKED"
-        }`;
+        } | Missions: ${sphereDaily1Active ? "OPEN" : "CLOSED"}`;
         setDebugInfo(status);
         setNearArcadeMachine(stableDiscoveryState);
 
@@ -847,6 +894,18 @@ function SplinePage() {
             console.log("🔍 Discovery cooldown period ended");
             setDiscoveryClosedRecently(false);
           }, 1000);
+        }}
+      />
+
+      {/* MissionPanel */}
+      <MissionPanel
+        isOpen={missionsOpen}
+        onClose={() => {
+          console.log("🎯 Mission modal closing - simulating M key");
+          setMissionsOpen(false);
+          
+          // Simuler la touche M lors de la fermeture
+          simulateKeyM();
         }}
       />
     </div>
