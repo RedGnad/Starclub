@@ -1,0 +1,361 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Enum for dApp categories
+enum DAppCategory {
+  // AI
+  AI_AGENT_LAUNCHPAD
+  AI_ABSTRACTION_INFRASTRUCTURE
+  AI_CONSUMER_AI
+  AI_DATA
+  AI_COMPUTE
+  AI_INFERENCE
+  AI_GAMING
+  AI_INFRASTRUCTURE
+  AI_INVESTING
+  AI_MODELS
+  AI_TRADING_AGENT
+  AI_OTHER
+
+  // CeFi
+  CEFI_CEX
+  CEFI_INSTITUTIONAL_TRADING
+  CEFI_OTHER
+
+  // Consumer
+  CONSUMER_BETTING
+  CONSUMER_ECOMMERCE_TICKETING
+  CONSUMER_PREDICTION_MARKET
+  CONSUMER_SOCIAL
+  CONSUMER_OTHER
+
+  // DeFi
+  DEFI_ASSET_ALLOCATORS
+  DEFI_ASSET_ISSUERS
+  DEFI_CDP
+  DEFI_CROSS_CHAIN
+  DEFI_DEX
+  DEFI_DEX_AGGREGATOR
+  DEFI_INDEXES
+  DEFI_INSURANCE
+  DEFI_INTENTS
+  DEFI_LAUNCHPADS
+  DEFI_LENDING
+  DEFI_LEVERAGED_FARMING
+  DEFI_LIQUID_STAKING
+  DEFI_MEMECOIN
+  DEFI_MEV
+  DEFI_OPTIONS
+  DEFI_PERPETUALS_DERIVATIVES
+  DEFI_PRIME_BROKERAGE
+  DEFI_RESERVE_CURRENCY
+  DEFI_RWA
+  DEFI_STABLECOIN
+  DEFI_STABLESWAP
+  DEFI_STAKING
+  DEFI_SYNTHETICS
+  DEFI_TRADING_INTERFACES
+  DEFI_UNCOLLATERALIZED_LENDING
+  DEFI_YIELD
+  DEFI_YIELD_AGGREGATOR
+  DEFI_OTHER
+
+  // DePIN
+  DEPIN_SPATIAL_INTELLIGENCE
+  DEPIN_CDN
+  DEPIN_COMPUTE
+  DEPIN_DATA_COLLECTION
+  DEPIN_DATA_LABELLING
+  DEPIN_MAPPING
+  DEPIN_MONITORING_NETWORKS
+  DEPIN_STORAGE
+  DEPIN_WIRELESS_NETWORK
+  DEPIN_OTHER
+
+  // DeSci
+  DESCI_OTHER
+
+  // Gaming
+  GAMING_METAVERSE
+  GAMING_MOBILE_FIRST
+  GAMING_GAMES
+  GAMING_INFRASTRUCTURE
+  GAMING_OTHER
+
+  // Governance
+  GOVERNANCE_DELEGATION
+  GOVERNANCE_RISK_MANAGEMENT
+  GOVERNANCE_OTHER
+
+  // Infra
+  INFRA_AA
+  INFRA_AUTOMATION
+  INFRA_ANALYTICS
+  INFRA_DEVELOPER_TOOLING
+  INFRA_IDENTITY
+  INFRA_INDEXING
+  INFRA_INTEROPERABILITY
+  INFRA_GAMING
+  INFRA_ORACLE
+  INFRA_PRIVACY_ENCRYPTION
+  INFRA_RPC
+  INFRA_OTHER
+  INFRA_ZK
+  INFRA_RAAS
+  INFRA_WAAS
+  INFRA_WALLET
+
+  // NFT
+  NFT_COLLECTIONS
+  NFT_INFRASTRUCTURE
+  NFT_INTEROPERABILITY
+  NFT_MARKETPLACE
+  NFT_NFTFI
+  NFT_OTHER
+
+  // Payments
+  PAYMENTS_CREDIT_CARDS
+  PAYMENTS_ONRAMP_OFFRAMPS
+  PAYMENTS_NEOBANKS
+  PAYMENTS_ORCHESTRATION
+  PAYMENTS_REMITTANCE
+  PAYMENTS_OTHER
+
+  UNKNOWN
+}
+
+// Enum for contract types
+enum ContractType {
+  ERC20
+  ERC721
+  ERC1155
+  CUSTOM
+  UNKNOWN
+}
+
+// Enum for detection source
+enum DetectionSource {
+  AUTO
+  MANUAL
+}
+
+// Enum for dApp status
+enum DAppStatus {
+  ACTIVE
+  DORMANT
+  INACTIVE
+}
+
+// Main dApps table
+model DApp {
+  id              String          @id @default(cuid())
+  name            String?
+  description     String?
+  logoUrl         String?
+  banner          String?
+  symbol          String?
+  website         String?
+  github          String?
+  twitter         String?
+  category        DAppCategory    @default(UNKNOWN)
+  status          DAppStatus      @default(ACTIVE)
+  detectionSource DetectionSource @default(AUTO)
+
+  // GitHub source tracking
+  githubId        String?         @unique // ID from GitHub protocols repo
+
+  // Social metrics
+  twitterFollowers String?        // Twitter/X followers count (e.g., "12 k", "2 552")
+
+  // Quality scoring
+  qualityScore    Float           @default(0) // Score de qualité (0-10)
+  activityScore   Float           @default(0)
+  diversityScore  Float           @default(0)
+  ageScore        Float           @default(0)
+
+  // Analytics
+  totalTxCount    Int             @default(0)
+  totalEventCount Int             @default(0)
+  uniqueUsers     Int             @default(0)
+  tvlUsd          Float           @default(0) // Total Value Locked in USD
+  firstActivity   DateTime?
+  lastActivity    DateTime?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  contracts       Contract[]
+  activities      Activity[]
+
+  @@map("dapps")
+}
+
+// Contracts table
+model Contract {
+  id              String       @id @default(cuid())
+  address         String       @unique
+  bytecodeHash    String?
+  type            ContractType @default(UNKNOWN)
+  deploymentDate  DateTime?
+  creatorAddress  String?
+  transactionHash String?
+  blockNumber     BigInt?
+
+  // Metadata
+  name            String?
+  symbol          String?
+
+  // Activity metrics
+  eventCount      Int          @default(0) // Nombre d'événements émis
+  txCount         Int          @default(0) // Nombre de transactions
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  dappId          String?
+  dapp            DApp?        @relation(fields: [dappId], references: [id], onDelete: SetNull)
+
+  @@index([address])
+  @@index([dappId])
+  @@index([deploymentDate])
+  @@index([eventCount])
+  @@map("contracts")
+}
+
+// Activity tracking table
+model Activity {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  txCount     Int      @default(0)
+  userCount   Int      @default(0)
+  eventCount  Int      @default(0)
+  gasUsed     BigInt   @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  dappId      String
+  dapp        DApp     @relation(fields: [dappId], references: [id], onDelete: Cascade)
+
+  @@unique([dappId, date])
+  @@index([dappId])
+  @@index([date])
+  @@map("activities")
+}
+
+// Block scanning state
+model BlockScanState {
+  id             String   @id @default(cuid())
+  lastBlockScanned BigInt @default(0)
+  updatedAt      DateTime @updatedAt
+
+  @@map("block_scan_state")
+}
+
+// Cache for protocol data
+model ProtocolCache {
+  id          String   @id @default(cuid())
+  key         String   @unique // 'github_protocols_testnet' or 'github_protocols_mainnet'
+  data        String   // JSON stringified data
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([expiresAt])
+  @@map("protocol_cache")
+}
+
+// Cron job execution tracking
+model CronJob {
+  id          String   @id @default(cuid())
+  name        String   @unique // 'sync_github_protocols', 'enrich_protocols'
+  lastRun     DateTime?
+  nextRun     DateTime?
+  status      String   @default("idle") // 'idle', 'running', 'failed'
+  error       String?
+  runCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([nextRun])
+  @@map("cron_jobs")
+}
+
+// Monvision ecosystem dApps
+model MonvisionDApp {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  logoUrl         String?
+  category        String?  // Type du projet (Dex, Lending, LST, etc.)
+
+  // Links
+  website         String?
+  twitter         String?
+  discord         String?
+  telegram        String?
+  github          String?
+  docs            String?
+  detailsUrl      String?  // URL vers la page de détails sur Monvision
+
+  // Social metrics
+  twitterFollowers String?  // Twitter/X followers count (e.g., "12 k", "2 552")
+
+  // Statistics
+  accountsCount   Int      @default(0)
+  transactionsCount BigInt @default(0)
+
+  // Enrichment status
+  isEnriched      Boolean  @default(false) // True if details have been fetched
+  enrichedAt      DateTime? // When enrichment was completed
+
+  // Relations
+  contracts       MonvisionContract[]
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@index([accountsCount])
+  @@index([transactionsCount])
+  @@index([isEnriched])
+  @@map("monvision_dapps")
+}
+
+// Contracts for Monvision dApps
+model MonvisionContract {
+  id              String   @id @default(cuid())
+  address         String
+  name            String?
+  type            String?  // Type de contrat
+
+  // Relations
+  dappId          String
+  dapp            MonvisionDApp @relation(fields: [dappId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([dappId, address]) // Un contrat ne peut être lié qu'une fois à une dApp
+  @@index([address])
+  @@index([dappId])
+  @@map("monvision_contracts")
+}

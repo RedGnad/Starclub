@@ -1,0 +1,18 @@
+{
+  "0x4f6500c07a8a483a0aabb1bc0d5b2b44abc2f3f3": {
+    "name": "Monad Testnet Token",
+    "description": "Native token du testnet Monad",
+    "category": "TOKEN",
+    "tags": ["testnet", "native", "gas"],
+    "confidence": 1.0,
+    "source": "manual"
+  },
+  "0x0000000000000000000000000000000000001000": {
+    "name": "Monad System Contract",
+    "description": "Contrat système de Monad pour la gestion des validateurs et de la gouvernance",
+    "category": "INFRA",
+    "tags": ["system", "validators", "governance"],
+    "confidence": 1.0,
+    "source": "manual"
+  }
+}
