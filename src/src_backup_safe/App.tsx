@@ -38,7 +38,8 @@ function SplinePage() {
   const [blockSplineEvents, setBlockSplineEvents] = React.useState(false);
 
   // État pour empêcher la réouverture immédiate après fermeture
-  const [discoveryClosedRecently, setDiscoveryClosedRecently] = React.useState(false);
+  const [discoveryClosedRecently, setDiscoveryClosedRecently] =
+    React.useState(false);
   const discoveryTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Ouverture automatique du modal Discovery avec délai et protection contre réouverture
@@ -48,28 +49,42 @@ function SplinePage() {
       discoveryOpen,
       modalOpen,
       discoveryClosedRecently,
-      missionsOpen
+      missionsOpen,
     });
-    
+
     // Le modal de missions ne doit pas bloquer l'ouverture du Discovery modal
-    if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
-      console.log("🔍 Sphere conditions met - Starting 1s timer for Discovery modal");
-      
+    if (
+      nearArcadeMachine &&
+      !discoveryOpen &&
+      !modalOpen &&
+      !discoveryClosedRecently
+    ) {
+      console.log(
+        "🔍 Sphere conditions met - Starting 1s timer for Discovery modal"
+      );
+
       // Délai de 1 seconde avant ouverture
       discoveryTimeoutRef.current = setTimeout(() => {
         console.log("🔍 Timer finished, checking conditions again:", {
           nearArcadeMachine,
           discoveryOpen,
           modalOpen,
-          discoveryClosedRecently
+          discoveryClosedRecently,
         });
-        
+
         // Vérifier à nouveau les conditions après le délai (sans tenir compte du modal missions)
-        if (nearArcadeMachine && !discoveryOpen && !modalOpen && !discoveryClosedRecently) {
+        if (
+          nearArcadeMachine &&
+          !discoveryOpen &&
+          !modalOpen &&
+          !discoveryClosedRecently
+        ) {
           console.log("🔍 Auto-opening Discovery modal after 1s delay");
           setDiscoveryOpen(true);
         } else {
-          console.log("🔍 Conditions not met after delay, not opening Discovery modal");
+          console.log(
+            "🔍 Conditions not met after delay, not opening Discovery modal"
+          );
         }
       }, 1000);
     }
@@ -81,7 +96,13 @@ function SplinePage() {
         discoveryTimeoutRef.current = null;
       }
     };
-  }, [nearArcadeMachine, discoveryOpen, modalOpen, discoveryClosedRecently, missionsOpen]);
+  }, [
+    nearArcadeMachine,
+    discoveryOpen,
+    modalOpen,
+    discoveryClosedRecently,
+    missionsOpen,
+  ]);
 
   // Fonction pour simuler un appui de touche 'm' (cycle complet keydown + keyup)
   const simulateKeyM = () => {
@@ -411,7 +432,6 @@ function SplinePage() {
         });
       }
 
-
       // Action avec la touche "M"
       if (e.key.toLowerCase() === "m") {
         if (e.type === "keydown") {
@@ -556,14 +576,16 @@ function SplinePage() {
           )}`;
         }
 
-        // Vérifier Camera Chog - STRICTEMENT y=167.30 (±2 tolérance)
+        // Vérifier Camera Chog - STRICTEMENT x=13593.59 (±50 tolérance)
         if (cameraChog) {
-          cameraChogActive = Math.abs(cameraChog.position.y - 167.3) < 2;
+          cameraChogActive = Math.abs(cameraChog.position.x - 13593.59) < 50;
           cameraChogStatus = `${
-            cameraChogActive ? "TRIGGER (y≈167.30)" : "IDLE"
-          } | Position: ${Math.round(cameraChog.position.x)},${
-            Math.round(cameraChog.position.y * 100) / 100
-          },${Math.round(cameraChog.position.z)}`;
+            cameraChogActive ? "TRIGGER (x≈13593.59)" : "IDLE"
+          } | Position: ${Math.round(cameraChog.position.x)},${Math.round(
+            cameraChog.position.y
+          )},${Math.round(cameraChog.position.z)} | Distance: ${Math.round(
+            Math.abs(cameraChog.position.x - 13593.59)
+          )}`;
 
           // Simuler touche C si Camera Chog vient d'atteindre la position et ce n'était pas le cas avant
           if (cameraChogActive && !previousCameraChogState) {
@@ -595,7 +617,9 @@ function SplinePage() {
 
         // Vérifier Sphere Daily 1 pour les missions quotidiennes (y = -2000)
         if (sphereDaily1) {
-          const sphereDaily1Distance = Math.abs(sphereDaily1.position.y - -2000);
+          const sphereDaily1Distance = Math.abs(
+            sphereDaily1.position.y - -2000
+          );
           sphereDaily1Active = sphereDaily1Distance < 50;
           sphereDaily1Status = `${
             sphereDaily1Active ? "MISSIONS ACTIVE (y≈-2000)" : "IDLE"
@@ -610,7 +634,9 @@ function SplinePage() {
             console.log("🎯 Sphere Daily 1 activated - opening missions modal");
             setMissionsOpen(true);
           } else if (!sphereDaily1Active && previousSphereDaily1State) {
-            console.log("🎯 Sphere Daily 1 deactivated - closing missions modal");
+            console.log(
+              "🎯 Sphere Daily 1 deactivated - closing missions modal"
+            );
             setMissionsOpen(false);
           }
           previousSphereDaily1State = sphereDaily1Active;
@@ -772,7 +798,6 @@ function SplinePage() {
       {/* Overlay buttons */}
       {mounted && (
         <>
-
           {/* Bouton disconnect en haut à droite si connecté */}
           {isConnected && (
             <div
@@ -879,15 +904,17 @@ function SplinePage() {
       <DiscoveryModal
         isOpen={discoveryOpen}
         onClose={() => {
-          console.log("🔍 Discovery modal closing - Activating cooldown period");
+          console.log(
+            "🔍 Discovery modal closing - Activating cooldown period"
+          );
           setDiscoveryOpen(false);
-          
+
           // Simuler les touches M, C et Y lors de la fermeture
           console.log("🎹 Simulating M, C, Y keys from Discovery modal close");
           simulateKeyM();
           setTimeout(() => simulateKeyC(), 100);
           setTimeout(() => simulateKeyY(), 200);
-          
+
           // Activer la protection contre réouverture pendant 1 seconde
           setDiscoveryClosedRecently(true);
           setTimeout(() => {
@@ -903,7 +930,7 @@ function SplinePage() {
         onClose={() => {
           console.log("🎯 Mission modal closing - simulating M key");
           setMissionsOpen(false);
-          
+
           // Simuler la touche M lors de la fermeture
           simulateKeyM();
         }}

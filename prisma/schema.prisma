@@ -1,0 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Enum for dApp categories
+enum DAppCategory {
+  // AI
+  AI_AGENT_LAUNCHPAD
+  AI_ABSTRACTION_INFRASTRUCTURE
+  AI_CONSUMER_AI
+  AI_DATA
+  AI_COMPUTE
+  AI_INFERENCE
+  AI_GAMING
+  AI_INFRASTRUCTURE
+  AI_INVESTING
+  AI_MODELS
+  AI_TRADING_AGENT
+  AI_OTHER
+
+  // CeFi
+  CEFI_CEX
+  CEFI_INSTITUTIONAL_TRADING
+  CEFI_OTHER
+
+  // Consumer
+  CONSUMER_BETTING
+  CONSUMER_ECOMMERCE_TICKETING
+  CONSUMER_PREDICTION_MARKET
+  CONSUMER_SOCIAL
+  CONSUMER_OTHER
+
+  // DeFi
+  DEFI_ASSET_ALLOCATORS
+  DEFI_ASSET_ISSUERS
+  DEFI_CDP
+  DEFI_CROSS_CHAIN
+  DEFI_DEX
+  DEFI_DEX_AGGREGATOR
+  DEFI_DERIVATIVES
+  DEFI_FARMING_YIELD_MINING
+  DEFI_INDEX
+  DEFI_INSURANCE
+  DEFI_LENDING
+  DEFI_LEVERAGED_TRADING
+  DEFI_LIQUID_STAKING
+  DEFI_PRIVACY
+  DEFI_RESERVE_CURRENCY
+  DEFI_RESTAKING
+  DEFI_SERVICES
+  DEFI_STABLECOIN
+  DEFI_UNCATEGORIZED
+  DEFI_OTHER
+
+  // Gaming
+  GAMING_GAMEFI
+  GAMING_METAVERSE
+  GAMING_ONCHAIN_GAME
+  GAMING_OTHER
+
+  // Infrastructure
+  INFRA_BRIDGE
+  INFRA_DATA
+  INFRA_DEV_TOOLING
+  INFRA_FHE
+  INFRA_IDENTITY
+  INFRA_INTENT
+  INFRA_INTEROPERABILITY
+  INFRA_MEV
+  INFRA_ORACLES
+  INFRA_PAYMENTS
+  INFRA_RPC
+  INFRA_SEQUENCER
+  INFRA_STAKING
+  INFRA_STORAGE
+  INFRA_OTHER
+
+  // Memecoins
+  MEMECOINS_LAUNCHPAD
+  MEMECOINS_OTHER
+
+  // NFT & Media
+  NFT_MARKETPLACE
+  NFT_TOOLING_INFRASTRUCTURE
+  NFT_OTHER
+
+  // RWA
+  RWA_TREASURY_BILLS
+  RWA_CREDIT
+  RWA_PRIVATE_MARKETS
+  RWA_COMMODITIES
+  RWA_OTHER
+
+  // Social
+  SOCIAL_CREATOR_ECONOMY
+  SOCIAL_SOCIAL_TRADING
+  SOCIAL_REPUTATION
+  SOCIAL_OTHER
+
+  // Web3 & Governance
+  WEB3_GOVERNANCE
+  WEB3_DAO_TOOLING
+  WEB3_OTHER
+}
+
+// Main dApp model from Monvision scraping
+model MonvisionDApp {
+  id              String         @id @default(cuid())
+  name            String
+  logoUrl         String?
+  description     String?
+  category        DAppCategory?
+  detailsUrl      String?        // URL vers la page de détails sur Monvision
+
+  // Social metrics
+  twitterFollowers String?       // Twitter/X followers count (e.g., "12 k", "2 552")
+
+  // Statistics
+  accountsCount   Int            @default(0)
+  transactionsCount Int          @default(0)
+  contractsCount  Int            @default(0)
+
+  // Social links
+  twitter         String?
+  discord         String?
+  telegram        String?
+  github          String?
+  website         String?
+
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  contracts       MonvisionContract[]
+
+  @@unique([name])
+}
+
+// Contract model from Monvision
+model MonvisionContract {
+  id              String         @id @default(cuid())
+  address         String         @unique
+  name            String?
+  
+  // Relations
+  dapp            MonvisionDApp  @relation(fields: [dappId], references: [id], onDelete: Cascade)
+  dappId          String
+
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([address])
+  @@index([dappId])
+}
+
+// Super dApps for missions (manually curated)
+model SuperDApp {
+  id              String         @id @default(cuid())
+  name            String         @unique
+  description     String?
+  category        String
+  website         String?
+  twitter         String?
+  github          String?
+  docs            String?
+  
+  // Relations
+  contracts       SuperContract[]
+  
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SuperContract {
+  id              String         @id @default(cuid())
+  name            String
+  address         String         @unique
+  
+  // Relations
+  superDapp       SuperDApp      @relation(fields: [superDappId], references: [id], onDelete: Cascade)
+  superDappId     String
+  
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([address])
+  @@index([superDappId])
+}
+
+// User interaction tracking
+model UserInteraction {
+  id              String         @id @default(cuid())
+  userAddress     String
+  contractAddress String
+  dappName        String
+  transactionHash String
+  blockNumber     Int
+  timestamp       DateTime
+  
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  
+  @@unique([userAddress, contractAddress, transactionHash])
+  @@index([userAddress])
+  @@index([contractAddress])
+  @@index([timestamp])
+}
