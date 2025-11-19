@@ -24,19 +24,45 @@ export function MissionModal({ isOpen, onClose, selectedDapp, onTrigger }: Missi
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
+      console.log('🎯 Mission modal opened for dapp:', selectedDapp?.name);
       setHasTriggered(false);
       setIsVerifying(false);
       setMissionComplete(false);
       
-      // Store initial interaction count
-      if (userInteractions && userInteractions.interactions) {
-        const dappInteraction = userInteractions.interactions.find(
-          (i: any) => i.dappName?.toLowerCase() === selectedDapp?.name?.toLowerCase()
-        );
-        setInitialInteractionCount(dappInteraction?.transactionCount || 0);
-      }
+      // FORCER un refetch pour avoir les données de base à jour
+      // (pas pour vérifier la mission, mais pour avoir le count initial correct)
+      console.log('🔄 Getting current interaction count as baseline...');
+      refetchInteractions().then(() => {
+        console.log('✅ Baseline data loaded');
+      });
+      
+      // Attendre un peu puis stocker le count initial (baseline)
+      setTimeout(() => {
+        console.log('📊 Setting baseline interaction count:', userInteractions);
+        
+        // Store initial interaction count as BASELINE
+        if (userInteractions && userInteractions.interactions) {
+          console.log('📊 Available interactions for baseline:', userInteractions.interactions.map((i: any) => ({
+            dappName: i.dappName,
+            transactionCount: i.transactionCount
+          })));
+          
+          const dappInteraction = userInteractions.interactions.find(
+            (i: any) => i.dappName?.toLowerCase() === selectedDapp?.name?.toLowerCase()
+          );
+          
+          console.log('🎯 Baseline interaction for selected dapp:', dappInteraction);
+          
+          const baselineCount = dappInteraction?.transactionCount || 0;
+          setInitialInteractionCount(baselineCount);
+          console.log('📈 Baseline interaction count set to:', baselineCount, '(this is BEFORE visiting the dApp)');
+        } else {
+          console.log('📊 No existing interactions - baseline set to 0');
+          setInitialInteractionCount(0);
+        }
+      }, 1000);
     }
-  }, [isOpen, userInteractions, selectedDapp]);
+  }, [isOpen, selectedDapp, refetchInteractions]);
 
   const handleVisitDapp = () => {
     if (selectedDapp?.website) {
@@ -52,25 +78,78 @@ export function MissionModal({ isOpen, onClose, selectedDapp, onTrigger }: Missi
     setIsVerifying(true);
     
     try {
-      await refetchInteractions();
+      console.log('🔍 Starting mission verification for:', selectedDapp?.name);
+      console.log('📊 Initial interaction count:', initialInteractionCount);
       
-      // Wait a bit for the data to update
-      setTimeout(() => {
-        if (userInteractions && userInteractions.interactions) {
-          const dappInteraction = userInteractions.interactions.find(
-            (i: any) => i.dappName?.toLowerCase() === selectedDapp?.name?.toLowerCase()
-          );
-          const currentCount = dappInteraction?.transactionCount || 0;
-          
-          if (currentCount > initialInteractionCount) {
-            setMissionComplete(true);
-          }
-        }
-        setIsVerifying(false);
-      }, 2000);
+      // Fonction de retry avec délai progressif
+      const verifyWithRetry = async (attempt = 1, maxAttempts = 3) => {
+        console.log(`🔄 Verification attempt ${attempt}/${maxAttempts}`);
+        
+        await refetchInteractions();
+        
+        // Délai progressif : 2s, 4s, 6s
+        const delay = attempt * 2000;
+        console.log(`⏳ Waiting ${delay/1000}s for blockchain indexation...`);
+        
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            console.log('🔄 User interactions after refetch (RAW):', userInteractions);
+            console.log('🔄 User interactions type:', typeof userInteractions);
+            console.log('🔄 User interactions keys:', userInteractions ? Object.keys(userInteractions) : 'null');
+            
+            // Essayer différentes structures possibles
+            const interactionsArray = userInteractions?.interactions || 
+                                     userInteractions?.data?.interactions || 
+                                     userInteractions;
+            
+            console.log('🔄 Interactions array found:', interactionsArray);
+            console.log('🔄 Interactions array type:', typeof interactionsArray);
+            console.log('🔄 Interactions array length:', Array.isArray(interactionsArray) ? interactionsArray.length : 'not array');
+            
+            if (interactionsArray && Array.isArray(interactionsArray)) {
+              console.log('📋 Available interactions:', interactionsArray.map((i: any) => ({
+                dappName: i.dappName,
+                transactionCount: i.transactionCount
+              })));
+              
+              const dappInteraction = interactionsArray.find(
+                (i: any) => i.dappName?.toLowerCase() === selectedDapp?.name?.toLowerCase()
+              );
+              
+              console.log('🎯 Found interaction for selected dapp:', dappInteraction);
+              
+              const currentCount = dappInteraction?.transactionCount || 0;
+              
+              console.log('📈 Current count vs initial:', currentCount, 'vs', initialInteractionCount);
+              
+              if (currentCount > initialInteractionCount) {
+                console.log('✅ MISSION COMPLETE! Setting missionComplete to true');
+                setMissionComplete(true);
+                resolve(true);
+              } else if (attempt < maxAttempts) {
+                console.log(`⏳ No new interactions yet, retrying in ${(attempt + 1) * 2}s... (attempt ${attempt + 1}/${maxAttempts})`);
+                resolve(verifyWithRetry(attempt + 1, maxAttempts));
+              } else {
+                console.log('❌ No new interactions detected after all attempts');
+                resolve(false);
+              }
+            } else if (attempt < maxAttempts) {
+              console.log(`❌ No valid interactions array, retrying... (attempt ${attempt + 1}/${maxAttempts})`);
+              resolve(verifyWithRetry(attempt + 1, maxAttempts));
+            } else {
+              console.log('❌ No valid interactions array found after all attempts');
+              resolve(false);
+            }
+          }, delay);
+        });
+      };
+      
+      // Lancer la vérification avec retry
+      await verifyWithRetry();
       
     } catch (error) {
       console.error('Mission verification failed:', error);
+    } finally {
       setIsVerifying(false);
     }
   };

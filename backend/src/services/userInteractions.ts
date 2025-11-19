@@ -950,7 +950,7 @@ export class UserInteractionsService {
   /**
    * Obtenir la liste des Super dApps pour les missions
    */
-  async getAvailableDapps(): Promise<Array<{ id: string; name: string; category?: string; contractCount?: number }>> {
+  async getAvailableDapps(): Promise<Array<{ id: string; name: string; description?: string; category?: string; website?: string; twitter?: string; github?: string; docs?: string; contractCount?: number }>> {
     try {
       console.log('🌟 Loading Super dApps for missions...');
       
@@ -958,7 +958,12 @@ export class UserInteractionsService {
       const superDapps = SUPER_DAPPS.map(dapp => ({
         id: dapp.id,
         name: dapp.name,
+        description: dapp.description,
         category: dapp.category,
+        website: dapp.website,
+        twitter: dapp.twitter,
+        github: dapp.github,
+        docs: dapp.docs,
         contractCount: dapp.contracts.length
       }));
 
