@@ -13,7 +13,13 @@ const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000',
+    'https://starclub.vercel.app',
+    'https://starclub-starclub-4.vercel.app',
+    'https://*.vercel.app'  // Domaines Vercel
+  ],
   credentials: true
 }));
 app.use(express.json());
