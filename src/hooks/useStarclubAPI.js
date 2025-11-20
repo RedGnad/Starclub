@@ -56,19 +56,41 @@ export function useSuperDApps() {
   const [error, setError] = useState(null);
 
   const fetchDApps = useCallback(async () => {
-    console.log('🔍 Fetching SuperDApps...');
+    console.log('🔍 [useSuperDApps] Fetching SuperDApps...');
     setLoading(true);
     setError(null);
     
     try {
+      console.log('🌐 [useSuperDApps] Calling starclubAPI.getSuperDApps()...');
       const result = await starclubAPI.getSuperDApps();
-      console.log('🌟 SuperDApps API result:', result);
+      console.log('🌟 [useSuperDApps] SuperDApps API result:', result);
+      
+      // Vérification de la structure de la réponse
+      if (!result) {
+        console.error('❌ [useSuperDApps] Result is null/undefined');
+        throw new Error('API returned null result');
+      }
+      
+      if (!result.success) {
+        console.error('❌ [useSuperDApps] API returned success=false:', result);
+        throw new Error(result.error || 'API returned success=false');
+      }
+      
+      if (!result.data) {
+        console.error('❌ [useSuperDApps] No data in result:', result);
+        throw new Error('No data in API response');
+      }
+      
       const dappsArray = result.data.dapps || [];
+      console.log(`🌟 [useSuperDApps] Processing ${dappsArray.length} dApps:`, dappsArray);
+      
       setDapps(dappsArray);
-      console.log(`🌟 SuperDApps loaded: ${dappsArray.length} dApps`, dappsArray);
+      console.log(`✅ [useSuperDApps] SuperDApps loaded successfully: ${dappsArray.length} dApps`);
+      
     } catch (err) {
+      console.error('❌ [useSuperDApps] SuperDApps fetch failed:', err);
       setError(err.message);
-      console.error('❌ SuperDApps fetch failed:', err);
+      setDapps([]); // Ensure empty array on error
     } finally {
       setLoading(false);
     }

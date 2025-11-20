@@ -176,13 +176,17 @@ function SplinePage() {
   // Debug SuperDApps loading
   React.useEffect(() => {
     console.log(
-      `🚀 SuperDApps state: ${superDapps.length} dApps, loading: ${dappsLoading}, error:`,
+      `🚀 [App] SuperDApps state: ${superDapps.length} dApps, loading: ${dappsLoading}, error:`,
       dappsError
     );
     if (superDapps.length > 0) {
       console.log(
-        "📋 SuperDApps names:",
+        "📋 [App] SuperDApps names:",
         superDapps.map((d: any) => d.name)
+      );
+    } else if (!dappsLoading && !dappsError) {
+      console.warn(
+        "⚠️ [App] SuperDApps is empty but no loading/error - possible issue!"
       );
     }
   }, [superDapps, dappsLoading, dappsError]);
