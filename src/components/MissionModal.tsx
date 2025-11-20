@@ -27,7 +27,6 @@ export function MissionModal({
 }: MissionModalProps) {
   const [hasTriggered, setHasTriggered] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [missionComplete, setMissionComplete] = useState(false);
   const [initialInteractionCount, setInitialInteractionCount] = useState(0);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
@@ -62,7 +61,6 @@ export function MissionModal({
       // Reset COMPLET de tous les states
       setHasTriggered(false);
       setIsVerifying(false);
-      setMissionComplete(false);
       setShowSuccessToast(false);
 
       // Nettoyer toute vérification en cours (API + localStorage)
@@ -268,11 +266,16 @@ export function MissionModal({
                   // Notifier la fin de la vérification
                   onVerificationEnd(verificationId);
 
-                  setMissionComplete(true);
+                  // Juste déclencher le cube et la notification toast
                   onCubeEarned();
                   setShowSuccessToast(true);
-                  setTimeout(() => setShowSuccessToast(false), 5000);
+                  setTimeout(() => setShowSuccessToast(false), 3000);
                   setIsVerifying(false);
+
+                  // Fermer le modal automatiquement après succès
+                  setTimeout(() => {
+                    onClose();
+                  }, 500);
 
                   return true;
                 } else {
@@ -370,116 +373,88 @@ export function MissionModal({
             </p>
           </div>
 
-          {!missionComplete ? (
-            <>
-              {/* Mission Description */}
-              <div className="bg-white/5 rounded-lg p-4 mb-6">
-                <h3 className="text-white font-semibold mb-2">Your Mission:</h3>
-                <p className="text-gray-200 text-sm mb-3">
-                  Perform a{" "}
-                  <span className="text-blue-400 font-semibold uppercase bg-blue-400/20 px-2 py-1 rounded text-xs">
-                    {selectedDapp.action || "transaction"}
-                  </span>{" "}
-                  on{" "}
-                  <span className="text-yellow-400 font-semibold">
-                    {selectedDapp.name}
-                  </span>{" "}
-                  to earn your cube!
-                </p>
-                <p className="text-gray-300 text-xs">
-                  Visit the dApp, make a {selectedDapp.action || "transaction"},
-                  then return here to verify your mission completion.
-                </p>
-              </div>
+          {/* Mission Description et Verification - Plus de section Complete */}
+          <>
+            {/* Mission Description */}
+            <div className="bg-white/5 rounded-lg p-4 mb-6">
+              <h3 className="text-white font-semibold mb-2">Your Mission:</h3>
+              <p className="text-gray-200 text-sm mb-3">
+                Perform a{" "}
+                <span className="text-blue-400 font-semibold uppercase bg-blue-400/20 px-2 py-1 rounded text-xs">
+                  {selectedDapp.action || "transaction"}
+                </span>{" "}
+                on{" "}
+                <span className="text-yellow-400 font-semibold">
+                  {selectedDapp.name}
+                </span>{" "}
+                to earn your cube!
+              </p>
+              <p className="text-gray-300 text-xs">
+                Visit the dApp, make a {selectedDapp.action || "transaction"},
+                then return here to verify your mission completion.
+              </p>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                {!hasTriggered ? (
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {!hasTriggered ? (
+                <button
+                  onClick={handleVisitDapp}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  🚀 Visit {selectedDapp.name}
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-green-400 text-sm flex items-center justify-center gap-2">
+                    <span>✅</span>
+                    <span>
+                      Mission triggered! Complete your interaction and verify
+                      below.
+                    </span>
+                  </div>
+
                   <button
-                    onClick={handleVisitDapp}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                    onClick={handleVerifyMission}
+                    disabled={!hasTriggered || isVerifying}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 ${
+                      !hasTriggered
+                        ? "bg-gray-600 cursor-not-allowed opacity-50"
+                        : isVerifying
+                        ? "bg-yellow-600 cursor-not-allowed opacity-75"
+                        : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
+                    }`}
                   >
-                    🚀 Visit {selectedDapp.name}
+                    {!hasTriggered ? (
+                      "🔒 Visit dApp first"
+                    ) : isVerifying ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Verifying in background...
+                      </div>
+                    ) : (
+                      "🔍 Verify Mission"
+                    )}
                   </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="text-green-400 text-sm flex items-center justify-center gap-2">
-                      <span>✅</span>
-                      <span>
-                        Mission triggered! Complete your interaction and verify
-                        below.
-                      </span>
-                    </div>
 
-                    <button
-                      onClick={handleVerifyMission}
-                      disabled={!hasTriggered || isVerifying}
-                      className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 ${
-                        !hasTriggered
-                          ? "bg-gray-600 cursor-not-allowed opacity-50"
-                          : isVerifying
-                          ? "bg-yellow-600 cursor-not-allowed opacity-75"
-                          : missionComplete
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "bg-blue-600 hover:bg-blue-700 hover:scale-105"
-                      }`}
-                    >
-                      {!hasTriggered ? (
-                        "🔒 Visit dApp first"
-                      ) : isVerifying ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Verifying in background...
+                  {isVerifying && (
+                    <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <div className="text-blue-400 text-sm text-center">
+                        <div className="font-semibold mb-1">
+                          ⚡ Background Verification Active
                         </div>
-                      ) : missionComplete ? (
-                        "✅ Mission Complete!"
-                      ) : (
-                        "🔍 Verify Mission"
-                      )}
-                    </button>
-
-                    {isVerifying && (
-                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <div className="text-blue-400 text-sm text-center">
-                          <div className="font-semibold mb-1">
-                            ⚡ Background Verification Active
-                          </div>
-                          <div className="text-xs opacity-80">
-                            You can close this modal and continue playing!
-                            <br />
-                            We'll notify you when the mission is verified.
-                          </div>
+                        <div className="text-xs opacity-80">
+                          You can close this modal and continue playing!
+                          <br />
+                          We'll notify you when the mission is verified.
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            /* Mission Complete */
-            <div className="space-y-6">
-              <div className="text-6xl">🎉</div>
-              <div>
-                <h3 className="text-2xl font-bold text-green-400 mb-2">
-                  Mission Complete!
-                </h3>
-                <p className="text-gray-200">
-                  You've successfully interacted with {selectedDapp.name}!
-                </p>
-                <p className="text-yellow-400 font-semibold mt-2">
-                  🧊 Cube Earned!
-                </p>
-              </div>
-
-              <button
-                onClick={onClose}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-              >
-                Complete Mission
-              </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </>
         </div>
       </div>
 

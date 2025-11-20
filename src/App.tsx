@@ -82,6 +82,11 @@ function SplinePage() {
     []
   );
 
+  // État des vérifications complétées pour animations discrètes
+  const [completedVerifications, setCompletedVerifications] = React.useState<
+    string[]
+  >([]);
+
   // Fonctions de gestion des vérifications pour le tracker
   const onVerificationStart = React.useCallback((verificationInfo: any) => {
     console.log("🔄 [App] Verification started:", verificationInfo);
@@ -169,9 +174,23 @@ function SplinePage() {
   const onVerificationEnd = React.useCallback(
     (verificationId: string) => {
       console.log("✅ Verification ended:", verificationId);
-      setActiveVerifications((prev) =>
-        prev.filter((verif) => verif.id !== verificationId)
-      );
+
+      // Ajouter à la liste des vérifications complétées pour animation
+      setCompletedVerifications((prev) => [...prev, verificationId]);
+
+      // Supprimer des vérifications actives après un délai pour permettre l'animation
+      setTimeout(() => {
+        setActiveVerifications((prev) =>
+          prev.filter((verif) => verif.id !== verificationId)
+        );
+
+        // Nettoyer des vérifications complétées après l'animation
+        setTimeout(() => {
+          setCompletedVerifications((prev) =>
+            prev.filter((id) => id !== verificationId)
+          );
+        }, 4000); // Temps total de l'animation
+      }, 100);
 
       // Traiter la prochaine mission dans la queue
       console.log("🔄 Mission completed, checking queue...");
@@ -1283,6 +1302,7 @@ function SplinePage() {
       <VerificationTracker
         verifications={activeVerifications}
         queue={missionQueue}
+        completedVerifications={completedVerifications}
       />
 
       {/* Spline Loading Screen */}
