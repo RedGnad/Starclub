@@ -22,7 +22,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "prisma": "^5.7.1",
-    "puppeteer": "^21.5.2",
     "papaparse": "^5.5.3"
   },
   "devDependencies": {
