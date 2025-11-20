@@ -86,8 +86,10 @@ export function MissionModal({
         setTimeout(async () => {
           // Appel direct API pour avoir les données fraîches
           try {
+            const API_BASE_URL =
+              process.env.REACT_APP_BACKEND_URL || "http://localhost:4000";
             const response = await fetch(
-              `http://localhost:4000/api/user/${address}/interactions`
+              `${API_BASE_URL}/api/user/${address}/interactions`
             );
             const result = await response.json();
 
@@ -195,8 +197,10 @@ export function MissionModal({
 
         try {
           // Appel direct à l'API
+          const API_BASE_URL =
+            process.env.REACT_APP_BACKEND_URL || "http://localhost:4000";
           const response = await fetch(
-            `http://localhost:4000/api/user/${address}/interactions`
+            `${API_BASE_URL}/api/user/${address}/interactions`
           );
           const result = await response.json();
 

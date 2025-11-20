@@ -187,7 +187,7 @@ export function BackendTest() {
       )}
 
       <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '10px' }}>
-        Backend: localhost:4000
+        Backend: {process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000'}
       </div>
     </div>
   );
