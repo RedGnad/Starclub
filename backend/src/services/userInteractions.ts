@@ -173,8 +173,16 @@ export class UserInteractionsService {
       const interactions: DAppInteractionCheck[] = [];
       const processedDApps = new Set<string>();
 
+      console.log(`🔍 Checking ${result.contractsInteracted.length} contracts against SuperDApps:`, result.contractsInteracted);
+      
+      // Debug : afficher tous les contrats SuperDApps configurés
+      const allSuperContracts = getAllSuperDAppContracts();
+      console.log(`📋 All SuperDApp contracts configured:`, allSuperContracts);
+
       for (const contractAddress of result.contractsInteracted) {
         const superDApp = findSuperDAppByContract(contractAddress);
+        
+        console.log(`🔍 Contract ${contractAddress} -> SuperDApp: ${superDApp?.name || 'NOT FOUND'}`);
         
         if (superDApp?.contracts && !processedDApps.has((superDApp as any).id)) {
           // Cast pour éviter les erreurs TypeScript dans ce bloc
@@ -950,7 +958,7 @@ export class UserInteractionsService {
   /**
    * Obtenir la liste des Super dApps pour les missions
    */
-  async getAvailableDapps(): Promise<Array<{ id: string; name: string; description?: string; category?: string; website?: string; twitter?: string; github?: string; docs?: string; contractCount?: number }>> {
+  async getAvailableDapps(): Promise<Array<{ id: string; name: string; description?: string; category?: string; action?: string; website?: string; twitter?: string; github?: string; docs?: string; contractCount?: number }>> {
     try {
       console.log('🌟 Loading Super dApps for missions...');
       
@@ -960,6 +968,7 @@ export class UserInteractionsService {
         name: dapp.name,
         description: dapp.description,
         category: dapp.category,
+        action: dapp.action, // Ajout de l'action
         website: dapp.website,
         twitter: dapp.twitter,
         github: dapp.github,

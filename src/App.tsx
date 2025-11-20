@@ -52,6 +52,11 @@ function SplinePage() {
     });
   }, []);
 
+  // État des vérifications en cours
+  const [activeVerifications, setActiveVerifications] = React.useState<any[]>(
+    []
+  );
+
   // Fonctions de gestion des vérifications pour le tracker
   const onVerificationStart = React.useCallback((verificationInfo: any) => {
     console.log("🔄 Verification started:", verificationInfo);
@@ -69,19 +74,11 @@ function SplinePage() {
     []
   );
 
-  const onVerificationEnd = React.useCallback((verificationId: string) => {
-    console.log("✅ Verification ended:", verificationId);
-    setActiveVerifications((prev) =>
-      prev.filter((verif) => verif.id !== verificationId)
-    );
-  }, []);
+  // Système de file d'attente pour les missions
+  const [missionQueue, setMissionQueue] = React.useState<any[]>([]);
+  const [currentMission, setCurrentMission] = React.useState<any>(null);
 
-  // État des vérifications en cours (sera connecté plus tard)
-  const [activeVerifications, setActiveVerifications] = React.useState<any[]>(
-    []
-  );
-
-  // Hooks pour les missions cube
+  // Hooks pour les missions cube (nécessaire pour processNextMission)
   const {
     dapps: superDapps,
     loading: dappsLoading,
@@ -94,6 +91,48 @@ function SplinePage() {
     resetMission,
     trackPosition,
   } = useMissions();
+
+  // Fonction pour traiter la prochaine mission dans la queue
+  const processNextMission = React.useCallback(() => {
+    console.log("🔄 Processing next mission in queue...");
+
+    setMissionQueue((prevQueue) => {
+      if (prevQueue.length === 0) {
+        console.log("📭 Queue empty, no more missions");
+        setCurrentMission(null);
+        return prevQueue;
+      }
+
+      const [nextMission, ...remainingQueue] = prevQueue;
+      console.log("🚀 Starting queued mission:", nextMission.name);
+      console.log("📋 Remaining in queue:", remainingQueue.length);
+
+      setCurrentMission(nextMission);
+
+      // Déclencher le modal pour la prochaine mission
+      setTimeout(() => {
+        triggerCubeMission([nextMission]);
+      }, 100);
+
+      return remainingQueue;
+    });
+  }, [triggerCubeMission]);
+
+  const onVerificationEnd = React.useCallback(
+    (verificationId: string) => {
+      console.log("✅ Verification ended:", verificationId);
+      setActiveVerifications((prev) =>
+        prev.filter((verif) => verif.id !== verificationId)
+      );
+
+      // Traiter la prochaine mission dans la queue
+      console.log("🔄 Mission completed, checking queue...");
+      setTimeout(() => {
+        processNextMission();
+      }, 500); // Petit délai pour laisser le temps aux states de se mettre à jour
+    },
+    [processNextMission]
+  );
 
   // Debug SuperDApps loading
   React.useEffect(() => {
@@ -747,13 +786,30 @@ function SplinePage() {
             console.log(
               `🔍 SuperDApps available: ${currentSuperDapps.length}, Mission triggered: ${missionTriggered}`
             );
-            if (currentSuperDapps.length > 0 && !missionTriggered) {
-              console.log("🚀 Triggering cube mission!");
-              triggerCubeMission(currentSuperDapps);
+            if (currentSuperDapps.length > 0) {
+              // Choisir une SuperDApp au hasard
+              const randomDapp =
+                currentSuperDapps[
+                  Math.floor(Math.random() * currentSuperDapps.length)
+                ];
+
+              // Vérifier si une vérification est en cours
+              if (activeVerifications.length > 0) {
+                console.log(
+                  "� Verification en cours, ajout à la queue:",
+                  randomDapp.name
+                );
+                setMissionQueue((prev) => [...prev, randomDapp]);
+              } else {
+                console.log(
+                  "🚀 Démarrage direct de la mission:",
+                  randomDapp.name
+                );
+                setCurrentMission(randomDapp);
+                triggerCubeMission([randomDapp]);
+              }
             } else {
-              console.log(
-                "❌ Cannot trigger mission - no SuperDApps or mission already active"
-              );
+              console.log("❌ Aucune SuperDApp disponible");
             }
           }
         }
@@ -1089,8 +1145,11 @@ function SplinePage() {
       {/* Backend Test Panel - Only in development */}
       {process.env.NODE_ENV === "development" && <BackendTest />}
 
-      {/* Verification Tracker - Vérifications réelles */}
-      <VerificationTracker verifications={activeVerifications} />
+      {/* Verification Tracker - Vérifications réelles + Queue */}
+      <VerificationTracker
+        verifications={activeVerifications}
+        queue={missionQueue}
+      />
 
       {/* Spline Loading Screen */}
       {!splineLoaded && (

@@ -11,6 +11,7 @@ export interface SuperDApp {
   name: string;
   description: string;
   category: string;
+  action: string; // Action à effectuer pour cette mission (swap, staking, farming, etc.)
   website?: string;
   twitter?: string;
   github?: string;
@@ -25,6 +26,7 @@ export const SUPER_DAPPS: SuperDApp[] = [
     name: 'Kuru',
     description: 'Find and trade your coins on a fully on-chain CLOB. Built for traders, powered by Monad.',
     category: 'DeFi::DEX',
+    action: 'swap',
     website: 'https://kuru.io/',
     twitter: 'https://x.com/KuruExchange',
     github: 'https://github.com/Kuru-Labs',
@@ -44,6 +46,7 @@ export const SUPER_DAPPS: SuperDApp[] = [
     name: 'Atlantis',
     description: 'Modular V4 DEX offering cross-chain swaps, DeFi, a launchpad, farming, staking, fiat on-ramp, & more.',
     category: 'DeFi::DEX',
+    action: 'swap',
     website: 'https://atlantisdex.xyz',
     twitter: 'https://x.com/atlantisdex_xyz',
     docs: 'https://atlantis-dex.gitbook.io/whitepaper',
@@ -56,6 +59,30 @@ export const SUPER_DAPPS: SuperDApp[] = [
       { name: 'QuoterV2', address: '0xa77aD9f635a3FB3bCCC5E6d1A87cB269746Aba17' },
       { name: 'NonfungiblePositionManager', address: '0x69D57B9D705eaD73a5d2f2476C30c55bD755cc2F' },
       { name: 'AtlantisSwapRouter', address: '0x0000000000001fF3684f28c67538d4D072C22734' }
+    ]
+  },
+  {
+    id: 'pingu',
+    name: 'Pingu Exchange',
+    description: 'Efficient swap platform for seamless token exchanges with optimized routing and low fees.',
+    category: 'DeFi::DEX',
+    action: 'swap',
+    website: 'https://pingu.exchange/',
+    isSuper: true,
+    contracts: [
+      { name: 'SwapContract', address: '0x3d7ec93875B6a6f0A5102fE29f887ee6E751b12F' }
+    ]
+  },
+  {
+    id: 'magma',
+    name: 'Magma',
+    description: 'Staking protocol offering high yield opportunities with secure smart contracts and transparent rewards.',
+    category: 'DeFi::Staking',
+    action: 'staking',
+    website: 'https://www.magmastaking.xyz/',
+    isSuper: true,
+    contracts: [
+      { name: 'StakingContract', address: '0x2c9C959516e9AAEdB2C748224a41249202ca8BE7' }
     ]
   }
 ];

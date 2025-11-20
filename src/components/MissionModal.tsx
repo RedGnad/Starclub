@@ -64,19 +64,43 @@ export function MissionModal({
       setMissionComplete(false);
       setShowSuccessToast(false);
 
-      // FORCER le baseline à 0 pour chaque nouvelle mission
-      // Peu importe les transactions précédentes, on repart de 0
-      setInitialInteractionCount(0);
-
       // Nettoyer toute vérification en cours
       localStorage.removeItem("pending_verification");
 
-      console.log("🔄 Mission reset - baseline forced to 0 (fresh start)");
-      console.log(
-        "💡 Any transaction from now will be counted as mission completion"
-      );
+      console.log("🔄 Getting REAL current count as baseline...");
 
-      // Plus besoin de refetch ou d'attendre - baseline = 0 toujours
+      // Obtenir le count réel actuel pour ce dApp
+      refetchInteractions().then(() => {
+        setTimeout(async () => {
+          // Appel direct API pour avoir les données fraîches
+          try {
+            const response = await fetch(
+              `http://localhost:4000/api/user/${address}/interactions`
+            );
+            const result = await response.json();
+
+            if (result.success && result.data?.interactions) {
+              const dappInteraction = result.data.interactions.find(
+                (i: any) =>
+                  i.dappName?.toLowerCase() ===
+                  selectedDapp?.name?.toLowerCase()
+              );
+
+              const currentCount = dappInteraction?.transactionCount || 0;
+              setInitialInteractionCount(currentCount);
+
+              console.log("📈 REAL baseline set:", currentCount);
+              console.log("💡 Next transaction will be counted as NEW");
+            } else {
+              console.log("⚠️ No interactions found, baseline = 0");
+              setInitialInteractionCount(0);
+            }
+          } catch (error) {
+            console.error("Failed to get baseline:", error);
+            setInitialInteractionCount(0);
+          }
+        }, 500);
+      });
     }
   }, [isOpen, selectedDapp?.id]); // Suppression de address pour éviter les rerenders
 
@@ -287,16 +311,20 @@ export function MissionModal({
               {/* Mission Description */}
               <div className="bg-white/5 rounded-lg p-4 mb-6">
                 <h3 className="text-white font-semibold mb-2">Your Mission:</h3>
-                <p className="text-gray-200 text-sm mb-4">
-                  Interact with{" "}
+                <p className="text-gray-200 text-sm mb-3">
+                  Perform a{" "}
+                  <span className="text-blue-400 font-semibold uppercase bg-blue-400/20 px-2 py-1 rounded text-xs">
+                    {selectedDapp.action || "transaction"}
+                  </span>{" "}
+                  on{" "}
                   <span className="text-yellow-400 font-semibold">
                     {selectedDapp.name}
                   </span>{" "}
                   to earn your cube!
                 </p>
                 <p className="text-gray-300 text-xs">
-                  Visit the dApp, make a transaction, then return here to verify
-                  your mission completion.
+                  Visit the dApp, make a {selectedDapp.action || "transaction"},
+                  then return here to verify your mission completion.
                 </p>
               </div>
 

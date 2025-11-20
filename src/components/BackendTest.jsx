@@ -156,7 +156,7 @@ export function BackendTest() {
               
               {/* SuperDApps disponibles */}
               <div style={{ fontSize: '9px', opacity: 0.5, marginTop: '3px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2px' }}>
-                SuperDApps tracked: Kuru, Atlantis
+                SuperDApps tracked: Kuru, Atlantis, Pingu Exchange, Magma
               </div>
             </div>
           ) : (
