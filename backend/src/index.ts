@@ -16,9 +16,10 @@ app.use(cors({
   origin: [
     'http://localhost:3000', 
     'http://127.0.0.1:3000',
+    'https://starclub-rho.vercel.app',
     'https://starclub.vercel.app',
     'https://starclub-starclub-4.vercel.app',
-    'https://*.vercel.app'  // Domaines Vercel
+    /https:\/\/.*\.vercel\.app$/  // Regex pour tous les domaines Vercel
   ],
   credentials: true
 }));
