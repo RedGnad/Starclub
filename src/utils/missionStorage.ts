@@ -7,7 +7,7 @@ const generateDefaultMissions = (date: string): AnyMission[] => [
   {
     id: `daily_checkin_${date}`,
     type: 'key_combo',
-    title: '📅 Daily Check-in',
+    title: 'Daily Check-in',
     description: 'Connect and open the application',
     target: 1,
     current: 0,
@@ -18,7 +18,7 @@ const generateDefaultMissions = (date: string): AnyMission[] => [
   {
     id: `cube_activations_${date}`,
     type: 'key_combo',
-    title: '🎯 Cube Activator',
+    title: 'Cube Activator',
     description: 'Open 3 cube mission modals',
     target: 3,
     current: 0,
@@ -29,7 +29,7 @@ const generateDefaultMissions = (date: string): AnyMission[] => [
   {
     id: `cube_completions_${date}`,
     type: 'key_combo',
-    title: '💎 Cube Master',
+    title: 'Cube Master',
     description: 'Complete 1 cube mission (earn 1 cube)',
     target: 1,
     current: 0,

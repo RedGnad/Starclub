@@ -356,7 +356,10 @@ export function MissionModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl border border-white/20 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+      <div
+        className="relative bg-[#0D001D] backdrop-blur-xl border-2 border-[#ae67c7] rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl"
+        style={{ boxShadow: "0 20px 40px rgba(174, 103, 199, 0.3)" }}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
@@ -368,8 +371,10 @@ export function MissionModal({
         <div className="text-center">
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Cube Mission</h2>
-            <p className="text-gray-300 text-sm">
+            <h2 className="text-2xl font-bold mb-2 text-[#b3f100]">
+              Cube Mission
+            </h2>
+            <p className="text-[#ae67c7] mb-6 text-sm">
               Complete this mission to earn a cube!
             </p>
           </div>
@@ -377,20 +382,22 @@ export function MissionModal({
           {/* Mission Description et Verification - Plus de section Complete */}
           <>
             {/* Mission Description */}
-            <div className="bg-white/5 rounded-lg p-4 mb-6">
-              <h3 className="text-white font-semibold mb-2">Your Mission:</h3>
-              <p className="text-gray-200 text-sm mb-3">
+            <div className="bg-[#0D001D] border border-[#ae67c7] rounded-lg p-4 mb-6">
+              <h3 className="text-[#b3f100] font-semibold mb-2">
+                Your Mission:
+              </h3>
+              <p className="text-[#ffffff] text-sm mb-3">
                 Perform a{" "}
-                <span className="text-blue-400 font-semibold uppercase bg-blue-400/20 px-2 py-1 rounded text-xs">
+                <span className="text-[#f19300] font-semibold uppercase bg-[#f19300]/20 px-2 py-1 rounded text-xs">
                   {selectedDapp.action || "transaction"}
                 </span>{" "}
                 on{" "}
-                <span className="text-yellow-400 font-semibold">
+                <span className="text-[#b3f100] font-semibold">
                   {selectedDapp.name}
                 </span>{" "}
                 to earn your cube!
               </p>
-              <p className="text-gray-300 text-xs">
+              <p className="text-[#ae67c7] text-xs">
                 Visit the dApp, make a {selectedDapp.action || "transaction"},
                 then return here to verify your mission completion.
               </p>
@@ -401,14 +408,15 @@ export function MissionModal({
               {!hasTriggered ? (
                 <button
                   onClick={handleVisitDapp}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                  className="w-full bg-[#f19300] hover:bg-[#ff9f1a] border-2 border-[#b3f100] text-[#0D001D] font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                  style={{ boxShadow: "0 4px 15px rgba(241, 147, 0, 0.4)" }}
                 >
-                  🚀 Visit {selectedDapp.name}
+                  Visit {selectedDapp.name}
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <div className="text-green-400 text-sm flex items-center justify-center gap-2">
-                    <span>✅</span>
+                  <div className="text-[#b3f100] text-sm flex items-center justify-center gap-2">
+                    <span>✓</span>
                     <span>
                       Mission triggered! Complete your interaction and verify
                       below.
@@ -461,11 +469,16 @@ export function MissionModal({
 
       {/* Success Toast - Notification non-intrusive */}
       {showSuccessToast && (
-        <div className="fixed top-4 right-4 z-[10001] bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm">
+        <div
+          className="fixed top-4 right-4 z-[10001] bg-[#0D001D] border-2 border-[#b3f100] px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl"
+          style={{ boxShadow: "0 8px 32px rgba(179, 241, 0, 0.4)" }}
+        >
           <div className="flex items-center gap-3">
             <div>
-              <div className="font-bold text-sm">Cube Earned!</div>
-              <div className="text-xs opacity-90">
+              <div className="font-bold text-sm text-[#b3f100]">
+                Cube Earned!
+              </div>
+              <div className="text-xs text-[#ae67c7]">
                 Mission completed successfully
               </div>
             </div>

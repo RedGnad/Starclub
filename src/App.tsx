@@ -1126,9 +1126,12 @@ function SplinePage() {
         <>
           {/* Compteur de cubes en haut de l'écran */}
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9998]">
-            <div className="bg-gradient-to-r from-purple-600/90 to-blue-600/90 backdrop-blur-sm border border-white/20 rounded-full px-6 py-3 shadow-2xl">
+            <div
+              className="bg-[#0D001D] backdrop-blur-xl border-2 border-[#b3f100] rounded-full px-6 py-3 shadow-2xl"
+              style={{ boxShadow: "0 8px 32px rgba(179, 241, 0, 0.3)" }}
+            >
               <div className="flex items-center gap-3">
-                <div className="text-white font-bold text-lg">
+                <div className="text-[#b3f100] font-bold text-lg">
                   {cubesEarned} Cube{cubesEarned !== 1 ? "s" : ""}
                 </div>
               </div>
@@ -1343,23 +1346,33 @@ function SplinePage() {
 
       {/* Spline Loading Screen */}
       {!splineLoaded && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          style={{
+            background:
+              "linear-gradient(135deg, #0D001D 0%, #1a0033 50%, #0D001D 100%)",
+          }}
+        >
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-10">
-            <div className="h-full w-full bg-[radial-gradient(circle,white_1px,transparent_1px)] [background-size:50px_50px]"></div>
+            <div className="h-full w-full bg-[radial-gradient(circle,#b3f100_1px,transparent_1px)] [background-size:50px_50px]"></div>
           </div>
 
           {/* Loading content */}
           <div className="relative z-10 text-center">
             <div className="mb-8">
-              <h1 className="text-4xl font-bold text-white mb-2">STARCLUB</h1>
-              <p className="text-white/70 text-lg">Loading 3D Environment...</p>
+              <h1 className="text-4xl font-bold text-[#b3f100] mb-2">
+                STARCLUB
+              </h1>
+              <p className="text-[#ae67c7] text-lg">
+                Loading 3D Environment...
+              </p>
             </div>
 
             {/* Spinner only - no progress bar */}
-            <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mb-6 mx-auto"></div>
+            <div className="w-16 h-16 border-4 border-[#ae67c7]/30 border-t-[#b3f100] rounded-full animate-spin mb-6 mx-auto"></div>
 
-            <p className="text-white/50 text-sm">
+            <p className="text-[#ae67c7] text-sm">
               {preloadStatus || "Initializing Spline..."}
             </p>
           </div>

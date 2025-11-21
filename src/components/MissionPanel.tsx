@@ -262,8 +262,9 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(13, 0, 29, 0.95)",
-        backdropFilter: "blur(10px)",
+        backgroundColor: "rgba(13, 0, 29, 0.85)", // Plus de transparence pour voir le blur
+        backdropFilter: "blur(15px)", // LIQUID GLASS EFFECT
+        WebkitBackdropFilter: "blur(15px)", // Support Safari
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -358,7 +359,7 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "24px", marginBottom: "4px" }}>🎉</div>
+            <div style={{ fontSize: "24px", marginBottom: "4px" }}>✓</div>
             <div
               style={{
                 color: "#b3f100", // Vert lime pour le texte de succès
@@ -422,7 +423,7 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
                     fontWeight: "bold",
                   }}
                 >
-                  🎁 Rewards Available
+                  Rewards Available
                 </p>
                 <p
                   style={{
