@@ -1,6 +1,5 @@
 import React from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { CubeLimitAPI } from "./services/cubeLimitAPI";
 import { CubeLimitIndicator } from "./components/CubeLimitIndicator";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { MissionPanel } from "./components/MissionPanel";
@@ -11,6 +10,7 @@ import { BackendTest } from "./components/BackendTest";
 import { useMissions } from "./hooks/useMissions";
 import { useSuperDApps } from "./hooks/useStarclubAPI";
 import { starclubAPI } from "./services/api";
+import { CubeLimitAPI } from "./services/cubeLimitAPI";
 import { syncDApps } from "./services/discoveryApi";
 import Spline from "@splinetool/react-spline";
 import {
@@ -75,6 +75,16 @@ function SplinePage() {
       const response = await starclubAPI.incrementUserCubes(address);
       setCubesEarned(response.data.cubes);
       console.log("🎲 Cube earned! Total cubes:", response.data.cubes);
+
+      // Mettre à jour la limite quotidienne de cubes
+      try {
+        const limitResponse = await CubeLimitAPI.incrementOpens(address);
+        if (limitResponse.success) {
+          (window as any).refreshCubeLimit?.();
+        }
+      } catch (limitError) {
+        console.error("Failed to update cube limit status:", limitError);
+      }
     } catch (error) {
       console.error("Failed to increment cubes:", error);
     }
@@ -219,7 +229,8 @@ function SplinePage() {
             console.log(
               "🎲 Toutes les missions quotidiennes complétées via cube mission !"
             );
-            // Logique de cube additionnel si nécessaire
+            // Attribuer réellement un cube supplémentaire
+            incrementCubes();
           }
         })
         .catch((err) => {
@@ -1349,7 +1360,7 @@ function SplinePage() {
         missions={missions}
         completed={completed}
         streak={streak}
-        availableRewards={getAvailableRewards().totalCubes}
+        availableRewards={0}
         onClaimMissionRewards={claimRewards}
         onClose={() => {
           console.log(
@@ -1385,6 +1396,21 @@ function SplinePage() {
                 console.log("🎯 Daily check-in completed successfully!");
                 // Le backend a déjà incrémenté les cubes, on recharge simplement la valeur
                 loadCubes();
+                // Mettre à jour la limite quotidienne pour refléter ce cube
+                if (address) {
+                  CubeLimitAPI.incrementOpens(address)
+                    .then((limitResponse) => {
+                      if (limitResponse.success) {
+                        (window as any).refreshCubeLimit?.();
+                      }
+                    })
+                    .catch((limitError) => {
+                      console.error(
+                        "Failed to update cube limit after daily check-in:",
+                        limitError
+                      );
+                    });
+                }
               } else {
                 console.log(
                   "ℹ️ Daily check-in did not grant cube, reason:",

@@ -65,7 +65,7 @@ export function CubeLimitIndicator({
   return (
     <div
       className={`
-      fixed top-20 right-4 z-50
+      fixed top-4 right-4 z-50
       bg-black/60 backdrop-blur-sm border border-white/20 
       rounded-lg px-3 py-2 text-sm font-mono
       transition-all duration-300 hover:bg-black/80

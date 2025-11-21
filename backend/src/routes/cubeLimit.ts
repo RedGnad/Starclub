@@ -3,7 +3,7 @@ import { prisma } from '../services/database.js';
 
 const router = Router();
 
-const DAILY_CUBE_LIMIT = 25;
+const DAILY_CUBE_LIMIT = 30;
 
 // Obtenir le statut des ouvertures de cubes pour un utilisateur
 router.get('/:address', async (req, res) => {
