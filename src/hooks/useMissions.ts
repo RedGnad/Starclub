@@ -128,6 +128,9 @@ export function useMissions() {
     trackDappClick,
     trackKeyCombo,
     trackPosition,
+    completeDailyCheckin,
+    markCubeCompleted,
+    checkAllMissionsCompleted,
     getMissionStatus,
     
     // Cube Mission
