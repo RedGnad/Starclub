@@ -1343,6 +1343,7 @@ function SplinePage() {
       {/* MissionPanel */}
       <MissionPanel
         isOpen={missionsOpen}
+        userAddress={address}
         onClose={() => {
           console.log(
             "🎯 Mission modal closing - executing universal sequence M→C→Y"

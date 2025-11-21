@@ -6,7 +6,8 @@ interface MissionPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onDailyCheckin: () => void;
-  onClaimRewards: (cubes: number) => void; // Nouveau prop
+  onClaimRewards: (cubes: number) => void;
+  userAddress?: string; // Ajout de l'adresse utilisateur
 }
 
 const DailyCheckinItem: React.FC<{
@@ -247,9 +248,10 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
   onClose,
   onDailyCheckin,
   onClaimRewards,
+  userAddress,
 }) => {
   const { missions, completed, streak, getAvailableRewards, claimRewards } =
-    useMissions();
+    useMissions(userAddress);
   const rewards = getAvailableRewards();
 
   if (!isOpen) return null;
