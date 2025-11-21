@@ -154,7 +154,6 @@ router.get('/test-missions/:address', async (req, res) => {
         title: 'Test Mission',
         description: 'Test description',
         target: 1,
-        progress: 0,
         completed: false
       }
     });
