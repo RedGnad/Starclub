@@ -3,12 +3,12 @@ services:
     name: starclub-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build && npx prisma generate && npx prisma db push
+    buildCommand: npm install && npx prisma db push --accept-data-loss && npx prisma generate && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
+      - key: PORT  
         value: 10000
       - key: DATABASE_URL
         fromDatabase:
