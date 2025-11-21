@@ -22,6 +22,12 @@ export interface MissionProgressResponse {
   error?: string;
 }
 
+export interface MissionsResponse {
+  success: boolean;
+  data?: any[];
+  error?: string;
+}
+
 export class MissionsAPI {
   private static async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     try {
@@ -47,8 +53,24 @@ export class MissionsAPI {
   }
 
   // Récupérer les missions d'un utilisateur
-  static async getUserMissions(address: string): Promise<APIMissionResponse> {
-    return this.request(`/api/missions/${address}`);
+  static async getUserMissions(address: string): Promise<MissionsResponse> {
+    try {
+      const response = await fetch(`${BACKEND_BASE_URL}/api/missions-simple/${address}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error getting user missions:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   // Mettre à jour le progrès d'une mission
