@@ -1353,10 +1353,6 @@ function SplinePage() {
         streak={streak}
         availableRewards={getAvailableRewards().totalCubes}
         onClaimMissionRewards={claimRewards}
-        onClaimRewards={(cubes) => {
-          console.log(`🎁 Claiming ${cubes} cubes`);
-          // Logic handled by onClaimMissionRewards
-        }}
         onClose={() => {
           console.log(
             "🎯 Mission modal closing - executing universal sequence M→C→Y"
