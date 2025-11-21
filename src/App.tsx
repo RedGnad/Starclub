@@ -46,22 +46,23 @@ function SplinePage() {
   const [cubesEarned, setCubesEarned] = React.useState(0);
 
   // Charger les cubes quand l'adresse change
-  React.useEffect(() => {
-    const loadCubes = async () => {
-      if (address) {
-        try {
-          const response = await starclubAPI.getUserCubes(address);
-          setCubesEarned(response.data.cubes);
-        } catch (error) {
-          console.warn("Failed to load cubes:", error);
-          setCubesEarned(0);
-        }
-      } else {
+  const loadCubes = React.useCallback(async () => {
+    if (address) {
+      try {
+        const response = await starclubAPI.getUserCubes(address);
+        setCubesEarned(response.data.cubes);
+      } catch (error) {
+        console.warn("Failed to load cubes:", error);
         setCubesEarned(0);
       }
-    };
-    loadCubes();
+    } else {
+      setCubesEarned(0);
+    }
   }, [address]);
+
+  React.useEffect(() => {
+    loadCubes();
+  }, [loadCubes]);
 
   // Fonction pour incrémenter les cubes
   const incrementCubes = React.useCallback(async () => {
@@ -261,29 +262,48 @@ function SplinePage() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false); // Backend session valide
   const [splineLoaded, setSplineLoaded] = React.useState(false);
 
+  const addressRef = React.useRef(address);
+  const isConnectedRef = React.useRef(isConnected);
+  const triggerCubeMissionRef = React.useRef(triggerCubeMission);
+
+  React.useEffect(() => {
+    addressRef.current = address;
+    isConnectedRef.current = isConnected;
+  }, [address, isConnected]);
+
+  React.useEffect(() => {
+    triggerCubeMissionRef.current = triggerCubeMission;
+  }, [triggerCubeMission]);
+
   // Wrapper pour vérifier les limites avant d'ouvrir un cube
   const triggerCubeMissionWithLimit = React.useCallback(
     async (missions: any[]) => {
+      const currentAddress = addressRef.current;
+      const currentIsConnected = isConnectedRef.current;
+
       console.log("🔍 DEBUG triggerCubeMissionWithLimit:", {
-        address,
-        isConnected,
+        address: currentAddress,
+        isConnected: currentIsConnected,
       });
 
-      if (!address || !isConnected) {
+      if (!currentAddress || !currentIsConnected) {
         console.log("⚠️ User not connected, using address anyway");
-        console.log("🔍 DEBUG: address:", address, "isConnected:", isConnected);
+        console.log(
+          "🔍 DEBUG: address:",
+          currentAddress,
+          "isConnected:",
+          currentIsConnected
+        );
       }
 
-      // TOUJOURS utiliser l'address si elle existe
-      if (address) {
-        triggerCubeMission(missions, address);
+      if (currentAddress && triggerCubeMissionRef.current) {
+        triggerCubeMissionRef.current(missions, currentAddress);
         return;
       }
 
-      // Si pas d'address, abandonner
       console.log("❌ No address available for cube mission");
     },
-    [address, isConnected, triggerCubeMission]
+    []
   );
   const [mounted, setMounted] = React.useState(false);
   const [nearArcadeMachine, setNearArcadeMachine] = React.useState(false);
@@ -1283,7 +1303,11 @@ function SplinePage() {
             }
           }
           setSigned(true);
+          setIsAuthenticated(true);
           setModalOpen(false);
+
+          // Recharger les cubes après authentification
+          await loadCubes();
 
           // Déclencher simulation X juste après signature
           console.log(
@@ -1359,14 +1383,18 @@ function SplinePage() {
             .then((result) => {
               if (result.giveCube) {
                 console.log("🎯 Daily check-in completed successfully!");
+                // Le backend a déjà incrémenté les cubes, on recharge simplement la valeur
+                loadCubes();
+              } else {
+                console.log(
+                  "ℹ️ Daily check-in did not grant cube, reason:",
+                  result.reason
+                );
               }
             })
             .catch((err) => {
               console.error("❌ Failed to complete daily check-in:", err);
             });
-
-          // Incrémenter les cubes via API
-          incrementCubes();
         }}
         onClaimRewards={(cubes: number) => {
           console.log(`🎁 Claiming ${cubes} cubes from mission rewards!`);
