@@ -1,7 +1,6 @@
 import React from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { CubeLimitAPI } from "./services/cubeLimitAPI";
-import { SplineReact } from "./components/SplineReact";
 import { CubeLimitIndicator } from "./components/CubeLimitIndicator";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { MissionPanel } from "./components/MissionPanel";
@@ -140,57 +139,6 @@ function SplinePage() {
     checkAllMissionsCompleted,
   } = useMissions(address); // On passera l'adresse, le hook gère si elle est undefined
 
-  // Wrapper pour vérifier les limites avant d'ouvrir un cube
-  const triggerCubeMissionWithLimit = React.useCallback(
-    async (missions: any[]) => {
-      if (!address || !signed || !isAuthenticated) {
-        console.log("⚠️ User not authenticated, skipping cube limit check");
-        triggerCubeMission(missions);
-        return;
-      }
-
-      try {
-        // Vérifier les limites
-        const limitResponse = await CubeLimitAPI.getLimitStatus(address);
-
-        if (!limitResponse.success || !limitResponse.data?.canOpen) {
-          console.log("🚫 Daily cube limit reached (25/25)");
-          alert(
-            "You have reached your daily cube opening limit (25/25). Come back tomorrow!"
-          );
-          return;
-        }
-
-        // Incrémenter le compteur
-        const incrementResponse = await CubeLimitAPI.incrementOpens(address);
-
-        if (incrementResponse.success) {
-          console.log(
-            `✅ Cube opened: ${incrementResponse.data?.cubeOpensToday}/${incrementResponse.data?.limit}`
-          );
-
-          // Déclencher la mission
-          triggerCubeMission(missions);
-
-          // Refresh l'UI du compteur
-          if ((window as any).refreshCubeLimit) {
-            (window as any).refreshCubeLimit();
-          }
-        } else {
-          console.error(
-            "❌ Failed to increment cube opens:",
-            incrementResponse.error
-          );
-          triggerCubeMission(missions); // Permettre quand même en cas d'erreur API
-        }
-      } catch (error) {
-        console.error("❌ Error checking cube limits:", error);
-        triggerCubeMission(missions); // Permettre en cas d'erreur réseau
-      }
-    },
-    [address, signed, isAuthenticated, triggerCubeMission]
-  );
-
   // Forcer un refresh des SuperDApps au montage pour avoir les nouvelles dApps
   React.useEffect(() => {
     const refreshOnMount = async () => {
@@ -307,6 +255,57 @@ function SplinePage() {
   const [signed, setSigned] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false); // Backend session valide
   const [splineLoaded, setSplineLoaded] = React.useState(false);
+
+  // Wrapper pour vérifier les limites avant d'ouvrir un cube
+  const triggerCubeMissionWithLimit = React.useCallback(
+    async (missions: any[]) => {
+      if (!address || !signed || !isAuthenticated) {
+        console.log("⚠️ User not authenticated, skipping cube limit check");
+        triggerCubeMission(missions);
+        return;
+      }
+
+      try {
+        // Vérifier les limites
+        const limitResponse = await CubeLimitAPI.getLimitStatus(address);
+
+        if (!limitResponse.success || !limitResponse.data?.canOpen) {
+          console.log("🚫 Daily cube limit reached (25/25)");
+          alert(
+            "You have reached your daily cube opening limit (25/25). Come back tomorrow!"
+          );
+          return;
+        }
+
+        // Incrémenter le compteur
+        const incrementResponse = await CubeLimitAPI.incrementOpens(address);
+
+        if (incrementResponse.success) {
+          console.log(
+            `✅ Cube opened: ${incrementResponse.data?.cubeOpensToday}/${incrementResponse.data?.limit}`
+          );
+
+          // Déclencher la mission
+          triggerCubeMission(missions);
+
+          // Refresh l'UI du compteur
+          if ((window as any).refreshCubeLimit) {
+            (window as any).refreshCubeLimit();
+          }
+        } else {
+          console.error(
+            "❌ Failed to increment cube opens:",
+            incrementResponse.error
+          );
+          triggerCubeMission(missions); // Permettre quand même en cas d'erreur API
+        }
+      } catch (error) {
+        console.error("❌ Error checking cube limits:", error);
+        triggerCubeMission(missions); // Permettre en cas d'erreur réseau
+      }
+    },
+    [address, signed, isAuthenticated, triggerCubeMission]
+  );
   const [mounted, setMounted] = React.useState(false);
   const [nearArcadeMachine, setNearArcadeMachine] = React.useState(false);
   const [debugInfo, setDebugInfo] = React.useState<string>("Initializing...");
