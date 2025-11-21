@@ -33,7 +33,7 @@ router.get('/:address', async (req, res) => {
       WHERE "userId" = ${userId} AND date = ${today}
     `;
     
-    // 3. Créer 4 missions directement en SQL
+    // 3. Créer 4 missions directement en SQL (avec vérification d'existence)
     const missions = [
       { id: `check_in_${today}`, type: 'daily_checkin', title: 'Daily Check-in', desc: 'Connect and open the application', target: 1 },
       { id: `discovery_arcade_${today}`, type: 'discovery_arcade', title: 'Discovery Arcade', desc: 'Open the Discovery Arcade modal', target: 1 },
@@ -42,11 +42,20 @@ router.get('/:address', async (req, res) => {
     ];
     
     for (const mission of missions) {
-      await prisma.$executeRaw`
-        INSERT INTO daily_missions (id, "userId", date, "missionId", "missionType", title, description, target, progress, completed, "createdAt", "updatedAt")
-        VALUES (${mission.id}, ${userId}, ${today}, ${mission.id}, ${mission.type}, ${mission.title}, ${mission.desc}, ${mission.target}, 0, false, NOW(), NOW())
-        ON CONFLICT ("userId", date, "missionId") DO NOTHING
+      // Vérifier si la mission existe déjà
+      const existing = await prisma.$queryRaw`
+        SELECT id FROM daily_missions 
+        WHERE "userId" = ${userId} AND date = ${today} AND "missionId" = ${mission.id}
+        LIMIT 1
       `;
+      
+      // Créer seulement si elle n'existe pas
+      if (!existing || (existing as any[]).length === 0) {
+        await prisma.$executeRaw`
+          INSERT INTO daily_missions (id, "userId", date, "missionId", "missionType", title, description, target, progress, completed, "createdAt", "updatedAt")
+          VALUES (${mission.id}, ${userId}, ${today}, ${mission.id}, ${mission.type}, ${mission.title}, ${mission.desc}, ${mission.target}, 0, false, NOW(), NOW())
+        `;
+      }
     }
     
     // 4. Récupérer les missions
