@@ -1,4 +1,4 @@
-const BACKEND_BASE_URL = (import.meta as any).env.VITE_BACKEND_URL || 'https://starclub-backend.onrender.com';
+const BACKEND_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://starclub-backend.onrender.com';
 
 export interface APIMissionResponse {
   success: boolean;
