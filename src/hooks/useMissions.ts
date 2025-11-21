@@ -3,6 +3,8 @@ import type { DailyMissionsState, AnyMission } from '../types/missions';
 import { MissionsAPI } from '../services/missionsAPI';
 
 export function useMissions(userAddress?: string) {
+  console.log('🔍 DEBUG useMissions called with userAddress:', userAddress);
+  
   // État des missions quotidiennes  
   const [missionsState, setMissionsState] = useState<DailyMissionsState>({
     currentDate: new Date().toISOString().split('T')[0],
@@ -84,9 +86,14 @@ export function useMissions(userAddress?: string) {
   const trackKeyCombo = useCallback((keys: string[]) => {
     console.log(`⌨️ Key combo detected:`, keys);
     console.log(`🔍 DEBUG: userAddress in trackKeyCombo:`, userAddress);
+    console.log(`🔍 DEBUG: userAddress type:`, typeof userAddress);
+    console.log(`🔍 DEBUG: userAddress === undefined:`, userAddress === undefined);
+    console.log(`🔍 DEBUG: userAddress === null:`, userAddress === null);
+    console.log(`🔍 DEBUG: userAddress length:`, userAddress?.length);
     
     if (!userAddress) {
       console.error('❌ Cannot track key combo without user address');
+      console.error('❌ FULL DEBUG userAddress:', JSON.stringify(userAddress));
       return null;
     }
     
