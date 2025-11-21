@@ -8,6 +8,7 @@ import { adminRoutes } from './admin.js';
 import { cubesRoutes } from './cubes.js';
 import { sessionsRoutes } from './sessions.js';
 import { missionsRoutes } from './missions.js';
+import { simpleMissionsRoutes } from './missions-simple.js';
 import { cubeLimitRoutes } from './cubeLimit.js';
 import { debugRoutes } from './debug.js';
 
@@ -42,6 +43,7 @@ export function setupApiRoutes(app: Express) {
   app.use('/api/cubes', cubesRoutes);
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/missions', missionsRoutes);
+  app.use('/api/missions-simple', simpleMissionsRoutes);
   app.use('/api/cube-limit', cubeLimitRoutes);
   app.use('/api/debug', debugRoutes);
 }
