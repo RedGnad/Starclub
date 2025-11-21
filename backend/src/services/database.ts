@@ -31,8 +31,13 @@ export async function getOrCreateUser(address: string) {
   });
   
   if (!user) {
+    // Génération manuelle d'ID
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     user = await prisma.user.create({
-      data: { address: normalizedAddress }
+      data: { 
+        id: userId,
+        address: normalizedAddress 
+      }
     });
     console.log(`👤 New user created: ${normalizedAddress}`);
   }

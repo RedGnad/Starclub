@@ -74,18 +74,22 @@ router.get('/:address', async (req, res) => {
     );
 
     if (missingMissions.length > 0) {
-      // PostgreSQL supporte createMany
-      await prisma.dailyMission.createMany({
-        data: missingMissions.map(template => ({
-          userId: user.id,
-          date: today,
-          missionId: template.id,
-          missionType: template.type,
-          title: template.title,
-          description: template.description,
-          target: template.target,
-        }))
-      });
+      // Créer chaque mission avec ID manuel
+      for (const template of missingMissions) {
+        const missionId = `mission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        await prisma.dailyMission.create({
+          data: {
+            id: missionId,
+            userId: user.id,
+            date: today,
+            missionId: template.id,
+            missionType: template.type,
+            title: template.title,
+            description: template.description,
+            target: template.target,
+          }
+        });
+      }
     }
 
     // Récupérer toutes les missions de l'utilisateur pour aujourd'hui
