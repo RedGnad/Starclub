@@ -8,34 +8,34 @@ const generateDefaultMissions = (date: string): AnyMission[] => [
     id: `daily_checkin_${date}`,
     type: 'key_combo',
     title: '📅 Daily Check-in',
-    description: 'Se connecter et ouvrir l\'application',
+    description: 'Connect and open the application',
     target: 1,
     current: 0,
     completed: false,
-    requiredCombos: [['app_opened']], // Événement spécial
+    requiredCombos: [['app_opened']], // Special event
     completedCombos: [],
   },
   {
     id: `cube_activations_${date}`,
     type: 'key_combo',
     title: '🎯 Cube Activator',
-    description: 'Ouvrir 3 fois le modal de mission cube',
+    description: 'Open 3 cube mission modals',
     target: 3,
     current: 0,
     completed: false,
-    requiredCombos: [['cube_modal_opened']], // Événement spécial
+    requiredCombos: [['cube_modal_opened']], // Special event
     completedCombos: [],
   },
   {
     id: `cube_completions_${date}`,
-    type: 'dapp_clicks',
+    type: 'key_combo',
     title: '💎 Cube Master',
-    description: 'Compléter 1 mission cube (obtenir 1 cube)',
+    description: 'Complete 1 cube mission (earn 1 cube)',
     target: 1,
     current: 0,
     completed: false,
-    requiredDapps: [], // Sera rempli avec les SuperDApps disponibles
-    clickedDapps: [],
+    requiredCombos: [['cube_completed']], // Special event for completed cube
+    completedCombos: [],
   },
 ];
 
