@@ -93,7 +93,7 @@ export class MissionsAPI {
       throw new Error('Failed to get user missions');
     }
 
-    const mission = missionsResponse.data.missions.find(m => m.id === missionId);
+    const mission = (missionsResponse.data as any).missions.find((m: any) => m.id === missionId);
     if (!mission) {
       throw new Error('Mission not found');
     }
