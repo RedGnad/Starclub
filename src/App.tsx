@@ -1,10 +1,13 @@
 import React from "react";
 import { useAccount, useDisconnect } from "wagmi";
-import { LoginModal } from "./components/LoginModal";
+import { CubeLimitAPI } from "./services/cubeLimitAPI";
+import { SplineReact } from "./components/SplineReact";
+import { CubeLimitIndicator } from "./components/CubeLimitIndicator";
 import { DiscoveryModal } from "./components/DiscoveryModal";
 import { MissionPanel } from "./components/MissionPanel";
 import { MissionModal } from "./components/MissionModal";
 import { VerificationTracker } from "./components/VerificationTracker";
+import { LoginModal } from "./components/LoginModal";
 import { BackendTest } from "./components/BackendTest";
 import { useMissions } from "./hooks/useMissions";
 import { useSuperDApps } from "./hooks/useStarclubAPI";
@@ -135,7 +138,58 @@ function SplinePage() {
     completeDailyCheckin,
     markCubeCompleted,
     checkAllMissionsCompleted,
-  } = useMissions();
+  } = useMissions(address); // On passera l'adresse, le hook gère si elle est undefined
+
+  // Wrapper pour vérifier les limites avant d'ouvrir un cube
+  const triggerCubeMissionWithLimit = React.useCallback(
+    async (missions: any[]) => {
+      if (!address || !signed || !isAuthenticated) {
+        console.log("⚠️ User not authenticated, skipping cube limit check");
+        triggerCubeMission(missions);
+        return;
+      }
+
+      try {
+        // Vérifier les limites
+        const limitResponse = await CubeLimitAPI.getLimitStatus(address);
+
+        if (!limitResponse.success || !limitResponse.data?.canOpen) {
+          console.log("🚫 Daily cube limit reached (25/25)");
+          alert(
+            "You have reached your daily cube opening limit (25/25). Come back tomorrow!"
+          );
+          return;
+        }
+
+        // Incrémenter le compteur
+        const incrementResponse = await CubeLimitAPI.incrementOpens(address);
+
+        if (incrementResponse.success) {
+          console.log(
+            `✅ Cube opened: ${incrementResponse.data?.cubeOpensToday}/${incrementResponse.data?.limit}`
+          );
+
+          // Déclencher la mission
+          triggerCubeMission(missions);
+
+          // Refresh l'UI du compteur
+          if ((window as any).refreshCubeLimit) {
+            (window as any).refreshCubeLimit();
+          }
+        } else {
+          console.error(
+            "❌ Failed to increment cube opens:",
+            incrementResponse.error
+          );
+          triggerCubeMission(missions); // Permettre quand même en cas d'erreur API
+        }
+      } catch (error) {
+        console.error("❌ Error checking cube limits:", error);
+        triggerCubeMission(missions); // Permettre en cas d'erreur réseau
+      }
+    },
+    [address, signed, isAuthenticated, triggerCubeMission]
+  );
 
   // Forcer un refresh des SuperDApps au montage pour avoir les nouvelles dApps
   React.useEffect(() => {
@@ -169,12 +223,12 @@ function SplinePage() {
 
       // Déclencher le modal pour la prochaine mission
       setTimeout(() => {
-        triggerCubeMission([nextMission]);
+        triggerCubeMissionWithLimit([nextMission]);
       }, 100);
 
       return remainingQueue;
     });
-  }, [triggerCubeMission]);
+  }, [triggerCubeMissionWithLimit]);
 
   const onVerificationEnd = React.useCallback(
     (verificationId: string) => {
@@ -205,7 +259,18 @@ function SplinePage() {
 
       // NOUVEAU: Marquer la mission quotidienne "Cube Master" comme complétée
       console.log("🎯 Marking cube completion mission as completed");
-      const shouldGiveCube = markCubeCompleted();
+      markCubeCompleted()
+        .then((result) => {
+          if (result.giveCube) {
+            console.log(
+              "🎲 Toutes les missions quotidiennes complétées via cube mission !"
+            );
+            // Logique de cube additionnel si nécessaire
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Failed to mark cube completed:", err);
+        });
 
       // FORCE REFRESH de l'état pour garantir la synchronisation UI
       setTimeout(() => {
@@ -218,14 +283,6 @@ function SplinePage() {
           })
         );
       }, 100);
-
-      if (shouldGiveCube) {
-        console.log(
-          "🎲 Toutes les missions quotidiennes complétées via cube mission !"
-        );
-        // TODO: Remplacer par récupération manuelle dans le modal
-        // incrementCubes(); // Temporairement désactivé
-      }
     },
     [processNextMission, markCubeCompleted, incrementCubes]
   );
@@ -964,7 +1021,7 @@ function SplinePage() {
                   randomDapp.name
                 );
                 setCurrentMission(randomDapp);
-                triggerCubeMission([randomDapp]);
+                triggerCubeMissionWithLimit([randomDapp]);
               }
             } else {
               console.log("❌ Aucune SuperDApp disponible");
@@ -1315,7 +1372,15 @@ function SplinePage() {
           console.log("📅 Daily check-in triggered!");
 
           // Marquer la mission daily check-in comme complétée
-          completeDailyCheckin();
+          completeDailyCheckin()
+            .then((result) => {
+              if (result.giveCube) {
+                console.log("🎯 Daily check-in completed successfully!");
+              }
+            })
+            .catch((err) => {
+              console.error("❌ Failed to complete daily check-in:", err);
+            });
 
           // Incrémenter les cubes via API
           incrementCubes();
@@ -1384,6 +1449,11 @@ function SplinePage() {
           </div>
         </div>
       )}
+
+      {/* Cube Limit Indicator - discrète en haut à droite */}
+      <CubeLimitIndicator
+        userAddress={signed && isAuthenticated ? address : undefined}
+      />
     </div>
   );
 }

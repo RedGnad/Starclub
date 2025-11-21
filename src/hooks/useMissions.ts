@@ -1,56 +1,84 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { DailyMissionsState, AnyMission, DappClickMission } from '../types/missions';
-import { MissionStorage } from '../utils/missionStorage';
+import type { DailyMissionsState, AnyMission } from '../types/missions';
+import { MissionsAPI } from '../services/missionsAPI';
 
-export function useMissions() {
+export function useMissions(userAddress?: string) {
   // État des missions quotidiennes  
-  const [missionsState, setMissionsState] = useState(() => MissionStorage.load());
+  const [missionsState, setMissionsState] = useState<DailyMissionsState>({
+    currentDate: new Date().toISOString().split('T')[0],
+    missions: [],
+    completed: false,
+    streak: 1,
+    lastCompletedDate: undefined,
+  });
   
-  // Listener pour synchroniser avec localStorage (pour forcer les updates)
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      console.log("📦 Storage change detected, refreshing missions state");
-      setMissionsState(MissionStorage.load());
-    };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Charger les missions depuis l'API
+  const loadMissions = useCallback(async () => {
+    if (!userAddress) {
+      console.log('⚠️ No user address, skipping mission load');
+      return;
+    }
 
-  // Recharger les missions si nécessaire
-  useEffect(() => {
-    const state = MissionStorage.load();
-    setMissionsState(state);
-  }, []);
-
-  // Tracking des clics sur dApps
-  const trackDappClick = useCallback((dappName: string, dappId: string) => {
-    const updatedState = MissionStorage.updateMissionProgress(
-      `dapp_clicks_${missionsState.currentDate}`,
-      (mission) => {
-        const dappMission = mission as DappClickMission;
-        
-        // Éviter les doublons
-        if (dappMission.clickedDapps.includes(dappId)) {
-          return mission;
-        }
-
-        const newClickedDapps = [...dappMission.clickedDapps, dappId];
-        const newCurrent = newClickedDapps.length;
-        
-        console.log(`🎯 Mission: dApp "${dappName}" clicked (${newCurrent}/${dappMission.target})`);
-        
-        return {
-          ...dappMission,
-          clickedDapps: newClickedDapps,
-          current: newCurrent,
-          completed: newCurrent >= dappMission.target,
-        };
-      }
-    );
+    setLoading(true);
+    setError(null);
     
-    setMissionsState(updatedState);
-  }, [missionsState.currentDate]);
+    try {
+      console.log('🌐 Loading missions from API for:', userAddress);
+      const response = await MissionsAPI.getUserMissions(userAddress);
+      
+      if (response.success && response.data) {
+        console.log('✅ Missions loaded from API:', response.data);
+        setMissionsState(response.data);
+      } else {
+        throw new Error(response.error || 'Failed to load missions');
+      }
+    } catch (err) {
+      console.error('❌ Failed to load missions:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [userAddress]);
+
+  // Charger les missions au montage et quand l'adresse change
+  useEffect(() => {
+    loadMissions();
+  }, [loadMissions]);
+
+  // Mettre à jour le progrès d'une mission
+  const updateMissionProgress = useCallback(async (missionId: string, increment: number = 1) => {
+    if (!userAddress) {
+      console.error('❌ Cannot update mission without user address');
+      return null;
+    }
+
+    try {
+      console.log('🌐 Updating mission progress:', { missionId, increment });
+      const response = await MissionsAPI.updateMissionProgress(userAddress, missionId, increment);
+      
+      if (response.success) {
+        console.log('✅ Mission progress updated');
+        // Recharger les missions pour avoir l'état à jour
+        await loadMissions();
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to update mission progress');
+      }
+    } catch (err) {
+      console.error('❌ Failed to update mission progress:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    }
+  }, [userAddress, loadMissions]);
+
+  // Fonctions simplifiées pour compatibilité
+  const trackDappClick = useCallback(async (dappName: string, dappId: string) => {
+    console.log(`📱 DApp clicked: ${dappName} (${dappId})`);
+    // TODO: Implémenter si nécessaire côté API
+  }, []);
 
   // Tracking des combinaisons de touches
   const trackKeyCombo = useCallback((keys: string[]) => {
@@ -60,98 +88,22 @@ export function useMissions() {
     if (keys.includes('discovery_modal_opened')) {
       console.log("🎯 Marking Discovery Arcade progress");
       
-      const updatedState = MissionStorage.updateMissionProgress(
-        `discovery_arcade_${missionsState.currentDate}`,
-        (mission) => {
-          if (mission.completed) {
-            console.log("⚠️ Discovery Arcade already completed today");
-            return mission;
-          }
-          
-          console.log("✅ Discovery Arcade completed!");
-          return {
-            ...mission,
-            current: 1,
-            completed: true,
-            completedCombos: [['discovery_modal_opened']],
-          };
-        }
-      );
-      
-      setMissionsState(updatedState);
-      
-      // Forcer la synchronisation UI
-      window.dispatchEvent(new StorageEvent('storage', { 
-        key: 'sherlock_daily_missions',
-        newValue: JSON.stringify(updatedState)
-      }));
-      
-      console.log("🎯 Discovery Arcade mission completed!");
-      return;
+      const result = updateMissionProgress(`discovery_arcade_${missionsState.currentDate}`, 1);
+      return result;
     }
     
     // Traitement spécial pour cube_modal_opened
     if (keys.includes('cube_modal_opened')) {
       console.log("🎯 Marking Cube Activator progress");
       
-      const updatedState = MissionStorage.updateMissionProgress(
-        `cube_activations_${missionsState.currentDate}`,
-        (mission) => {
-          const newCurrent = Math.min(mission.current + 1, mission.target);
-          
-          console.log(`🎯 Cube Activator: ${newCurrent}/${mission.target}`);
-          
-          return {
-            ...mission,
-            current: newCurrent,
-            completed: newCurrent >= mission.target,
-            // Assigner completedCombos uniquement si c'est une mission key_combo
-            ...(mission.type === 'key_combo' ? {
-              completedCombos: newCurrent >= mission.target ? [['cube_modal_opened']] : (mission as any).completedCombos || [],
-            } : {}),
-          };
-        }
-      );
-      
-      setMissionsState(updatedState);
-      
-      // Vérifier si la mission vient d'être complétée
-      const mission = updatedState.missions.find(m => m.id === `cube_activations_${missionsState.currentDate}`);
-      if (mission && mission.completed && mission.current === mission.target) {
-        console.log("🎯 Cube Activator completed! Awarding 1 cube");
-        // TODO: gérer l'attribution du cube dans App.tsx
-      }
-      return;
+      const result = updateMissionProgress(`cube_activations_${missionsState.currentDate}`, 1);
+      return result;
     }
     
-    const updatedState = MissionStorage.updateMissionProgress(
-      `key_combos_${missionsState.currentDate}`,
-      (mission) => {
-        if (mission.type !== 'key_combo') return mission;
-        
-        const keyMission = mission as any;
-        const requiredCombo = keyMission.requiredCombos[0]; // Premier combo requis
-        
-        // Vérifier si les touches correspondent
-        const keysMatch = requiredCombo.every((key: string) => keys.includes(key));
-        if (!keysMatch) return mission;
-        
-        const newCompletedCombos = [...(keyMission.completedCombos || []), keys];
-        const newCurrent = Math.min(newCompletedCombos.length, keyMission.target);
-        
-        console.log(`⌨️ Key combo progress: ${newCurrent}/${keyMission.target}`);
-        
-        return {
-          ...mission,
-          completedCombos: newCompletedCombos,
-          current: newCurrent,
-          completed: newCurrent >= keyMission.target,
-        };
-      }
-    );
+    console.log(`⌨️ Key combo progress: ${keys}`);
     
-    setMissionsState(updatedState);
-  }, [missionsState.currentDate]);
+    return null;
+  }, [missionsState.currentDate, updateMissionProgress]);
 
   // Tracking des positions - Event Sphere Verif
   const trackPosition = useCallback((objectName: string, position: { x: number; y: number; z: number }) => {
@@ -200,74 +152,45 @@ export function useMissions() {
     setActiveMission(null);
   }, []);
 
-  // Daily Check-in completion - NOUVEAU: donne 1 cube immédiatement
-  const completeDailyCheckin = useCallback(() => {
+  // Daily Check-in completion
+  const completeDailyCheckin = useCallback(async () => {
     console.log("📅 Completing daily check-in...");
     
-    const updatedState = MissionStorage.updateMissionProgress(
-      `daily_checkin_${missionsState.currentDate}`,
-      (mission) => {
-        if (mission.completed) {
-          console.log("⚠️ Daily check-in already completed today");
-          return mission;
-        }
-        
-        console.log("✅ Daily check-in completed!");
-        return {
-          ...mission,
-          current: 1,
-          completed: true,
-        };
-      }
-    );
+    if (!userAddress) {
+      console.error('❌ Cannot complete daily check-in without user address');
+      return { giveCube: false, reason: 'no_address' };
+    }
     
-    setMissionsState(updatedState);
+    const today = missionsState.currentDate;
+    const result = await updateMissionProgress(`daily_checkin_${today}`, 1);
     
-    // Forcer la synchronisation UI via synthetic storage event
-    window.dispatchEvent(new StorageEvent('storage', { 
-      key: 'sherlock_daily_missions',
-      newValue: JSON.stringify(updatedState)
-    }));
+    if (result?.justCompleted) {
+      console.log("🎯 Daily check-in completed! Awarding 1 cube");
+      return { giveCube: true, reason: 'daily_checkin' };
+    }
     
-    // NOUVEAU: donner 1 cube pour cette mission
-    console.log("🎯 Daily check-in completed! Awarding 1 cube");
-    return { giveCube: true, reason: 'daily_checkin' };
-  }, [missionsState.currentDate]);
+    return { giveCube: false, reason: 'already_completed' };
+  }, [userAddress, missionsState.currentDate, updateMissionProgress]);
 
-  // Marquer une mission cube comme complétée - NOUVEAU: donne 1 cube immédiatement
-  const markCubeCompleted = useCallback(() => {
+  // Marquer une mission cube comme complétée
+  const markCubeCompleted = useCallback(async () => {
     console.log("🎯 Marking cube mission as completed");
     
-    const updatedState = MissionStorage.updateMissionProgress(
-      `cube_completions_${missionsState.currentDate}`,
-      (mission) => {
-        if (mission.completed) {
-          console.log("⚠️ Cube mission already completed today");
-          return mission;
-        }
-        
-        console.log("✅ Cube mission completed!");
-        return {
-          ...mission,
-          current: 1,
-          completed: true,
-          completedCombos: [['cube_completed']],
-        };
-      }
-    );
+    if (!userAddress) {
+      console.error('❌ Cannot mark cube completed without user address');
+      return { giveCube: false, reason: 'no_address' };
+    }
     
-    setMissionsState(updatedState);
+    const today = missionsState.currentDate;
+    const result = await updateMissionProgress(`cube_completions_${today}`, 1);
     
-    // Forcer la synchronisation UI via synthetic storage event
-    window.dispatchEvent(new StorageEvent('storage', { 
-      key: 'sherlock_daily_missions',
-      newValue: JSON.stringify(updatedState)
-    }));
+    if (result?.justCompleted) {
+      console.log("🎯 Cube Master completed! Awarding 1 cube");
+      return { giveCube: true, reason: 'cube_master' };
+    }
     
-    // NOUVEAU: donner 1 cube pour cette mission
-    console.log("🎯 Cube Master completed! Awarding 1 cube");
-    return { giveCube: true, reason: 'cube_master' };
-  }, [missionsState.currentDate]);
+    return { giveCube: false, reason: 'already_completed' };
+  }, [userAddress, missionsState.currentDate, updateMissionProgress]);
 
   // Calculer les récompenses disponibles
   const getAvailableRewards = useCallback(() => {
@@ -300,29 +223,33 @@ export function useMissions() {
     return 0;
   }, [missionsState.currentDate, getAvailableRewards]);
   const checkAllMissionsCompleted = useCallback(() => {
-    const state = MissionStorage.load();
-    const allCompleted = state.missions.every(m => m.completed);
-    if (allCompleted && !state.completed) {
+    const allCompleted = missionsState.missions.every((m: AnyMission) => m.completed);
+    if (allCompleted && !missionsState.completed) {
       console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
-      // Marquer comme complété dans le storage
-      const updatedState = {...state, completed: true, lastCompletedDate: state.currentDate};
-      MissionStorage.save(updatedState);
-      setMissionsState(updatedState);
       return true;
     }
     return false;
-  }, []);
+  }, [missionsState]);
 
   // Obtenir le statut global des missions
   const getMissionStatus = useCallback(() => {
-    return MissionStorage.getMissionProgress();
-  }, []);
+    const completed = missionsState.missions.filter(m => m.completed).length;
+    const total = missionsState.missions.length;
+    return {
+      completed,
+      total,
+      allCompleted: missionsState.completed,
+    };
+  }, [missionsState]);
 
   return {
+    // État
     missions: missionsState.missions,
     completed: missionsState.completed,
     streak: missionsState.streak,
     currentDate: missionsState.currentDate,
+    loading,
+    error,
     
     // Actions
     trackDappClick,
@@ -342,6 +269,6 @@ export function useMissions() {
     resetMission,
     
     // Helpers
-    refresh: () => setMissionsState(MissionStorage.load()),
+    refresh: loadMissions,
   };
 }
