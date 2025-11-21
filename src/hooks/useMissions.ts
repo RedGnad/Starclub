@@ -113,6 +113,88 @@ export function useMissions() {
     setActiveMission(null);
   }, []);
 
+  // Daily Check-in completion
+  const completeDailyCheckin = useCallback(() => {
+    console.log("📅 Completing daily check-in...");
+    
+    const updatedState = MissionStorage.updateMissionProgress(
+      `daily_checkin_${missionsState.currentDate}`,
+      (mission) => {
+        if (mission.completed) {
+          console.log("⚠️ Daily check-in already completed today");
+          return mission;
+        }
+        
+        console.log("✅ Daily check-in completed!");
+        return {
+          ...mission,
+          current: 1,
+          completed: true,
+        };
+      }
+    );
+    
+    setMissionsState(updatedState);
+    
+    // Vérifier si toutes les missions sont complétées pour donner le cube
+    const allCompleted = updatedState.missions.every(m => m.completed);
+    if (allCompleted && !updatedState.completed) {
+      console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
+      return true; // Signal pour donner le cube
+    }
+    
+    return false;
+  }, [missionsState.currentDate]);
+
+  // Marquer une mission cube comme complétée
+  const markCubeCompleted = useCallback(() => {
+    console.log("🎯 Marking cube mission as completed");
+    
+    const updatedState = MissionStorage.updateMissionProgress(
+      `cube_completions_${missionsState.currentDate}`,
+      (mission) => {
+        if (mission.completed) {
+          console.log("⚠️ Cube mission already completed today");
+          return mission;
+        }
+        
+        console.log("✅ Cube mission completed!");
+        return {
+          ...mission,
+          current: 1,
+          completed: true,
+          completedCombos: [['cube_completed']],
+        };
+      }
+    );
+    
+    setMissionsState(updatedState);
+    
+    // Vérifier si toutes les missions sont complétées pour donner le cube
+    const allCompleted = updatedState.missions.every(m => m.completed);
+    if (allCompleted && !updatedState.completed) {
+      console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
+      return true; // Signal pour donner le cube
+    }
+    
+    return false;
+  }, [missionsState.currentDate]);
+
+  // Fonction pour vérifier si toutes les missions sont complétées (sans modification d'état)
+  const checkAllMissionsCompleted = useCallback(() => {
+    const state = MissionStorage.load();
+    const allCompleted = state.missions.every(m => m.completed);
+    if (allCompleted && !state.completed) {
+      console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
+      // Marquer comme complété dans le storage
+      const updatedState = {...state, completed: true, lastCompletedDate: state.currentDate};
+      MissionStorage.save(updatedState);
+      setMissionsState(updatedState);
+      return true;
+    }
+    return false;
+  }, []);
+
   // Obtenir le statut global des missions
   const getMissionStatus = useCallback(() => {
     return MissionStorage.getMissionProgress();
