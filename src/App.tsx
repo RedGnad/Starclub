@@ -206,11 +206,25 @@ function SplinePage() {
       // NOUVEAU: Marquer la mission quotidienne "Cube Master" comme complétée
       console.log("🎯 Marking cube completion mission as completed");
       const shouldGiveCube = markCubeCompleted();
+
+      // FORCE REFRESH de l'état pour garantir la synchronisation UI
+      setTimeout(() => {
+        console.log("🔄 Force refreshing missions state for UI sync");
+        // Trigger un re-render en rechargeant l'état
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "starclub-daily-missions",
+            newValue: localStorage.getItem("starclub-daily-missions"),
+          })
+        );
+      }, 100);
+
       if (shouldGiveCube) {
         console.log(
           "🎲 Toutes les missions quotidiennes complétées via cube mission !"
         );
-        incrementCubes(); // Donner le cube bonus pour toutes missions complétées
+        // TODO: Remplacer par récupération manuelle dans le modal
+        // incrementCubes(); // Temporairement désactivé
       }
     },
     [processNextMission, markCubeCompleted, incrementCubes]
@@ -1290,6 +1304,13 @@ function SplinePage() {
           // TODO: Implémenter l'API de check-in quotidien
           // Pour l'instant, juste un log et peut-être incrémenter les cubes
           incrementCubes();
+        }}
+        onClaimRewards={(cubes: number) => {
+          console.log(`🎁 Claiming ${cubes} cubes from mission rewards!`);
+          // Incrémenter les cubes pour chaque cube récupéré
+          for (let i = 0; i < cubes; i++) {
+            setTimeout(() => incrementCubes(), i * 100); // Petit délai pour l'effet visuel
+          }
         }}
       />
 

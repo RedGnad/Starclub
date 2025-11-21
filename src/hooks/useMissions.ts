@@ -1,11 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { DailyMissionsState, AnyMission, DappClickMission } from '../types/missions';
 import { MissionStorage } from '../utils/missionStorage';
 
 export function useMissions() {
-  const [missionsState, setMissionsState] = useState<DailyMissionsState>(() => 
-    MissionStorage.load()
-  );
+  // État des missions quotidiennes  
+  const [missionsState, setMissionsState] = useState(() => MissionStorage.load());
+  
+  // Listener pour synchroniser avec localStorage (pour forcer les updates)
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      console.log("📦 Storage change detected, refreshing missions state");
+      setMissionsState(MissionStorage.load());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Recharger les missions si nécessaire
   useEffect(() => {
@@ -213,7 +223,36 @@ export function useMissions() {
     return { giveCube: true, reason: 'cube_master' };
   }, [missionsState.currentDate]);
 
-  // Fonction pour vérifier si toutes les missions sont complétées (sans modification d'état)
+  // Calculer les récompenses disponibles
+  const getAvailableRewards = useCallback(() => {
+    const completedMissions = missionsState.missions.filter(m => m.completed);
+    const totalRewards = completedMissions.length; // 1 cube par mission complétée
+    
+    // Vérifier si les récompenses ont déjà été récupérées aujourd'hui
+    const claimedKey = `rewards_claimed_${missionsState.currentDate}`;
+    const alreadyClaimed = localStorage.getItem(claimedKey) === 'true';
+    
+    return {
+      totalCubes: alreadyClaimed ? 0 : totalRewards,
+      alreadyClaimed,
+      completedMissions: completedMissions.length,
+      totalMissions: missionsState.missions.length
+    };
+  }, [missionsState]);
+  
+  // Récupérer les récompenses manuellement
+  const claimRewards = useCallback(() => {
+    const rewards = getAvailableRewards();
+    if (rewards.totalCubes > 0) {
+      // Marquer comme récupéré
+      const claimedKey = `rewards_claimed_${missionsState.currentDate}`;
+      localStorage.setItem(claimedKey, 'true');
+      
+      console.log(`🎁 Claiming ${rewards.totalCubes} cubes from daily missions!`);
+      return rewards.totalCubes;
+    }
+    return 0;
+  }, [missionsState.currentDate, getAvailableRewards]);
   const checkAllMissionsCompleted = useCallback(() => {
     const state = MissionStorage.load();
     const allCompleted = state.missions.every(m => m.completed);
@@ -247,6 +286,8 @@ export function useMissions() {
     markCubeCompleted,
     checkAllMissionsCompleted,
     getMissionStatus,
+    getAvailableRewards,
+    claimRewards,
     
     // Cube Mission
     missionTriggered,

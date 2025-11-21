@@ -6,6 +6,7 @@ interface MissionPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onDailyCheckin: () => void;
+  onClaimRewards: (cubes: number) => void; // Nouveau prop
 }
 
 const DailyCheckinItem: React.FC<{
@@ -230,8 +231,11 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
   isOpen,
   onClose,
   onDailyCheckin,
+  onClaimRewards,
 }) => {
-  const { missions, completed, streak } = useMissions();
+  const { missions, completed, streak, getAvailableRewards, claimRewards } =
+    useMissions();
+  const rewards = getAvailableRewards();
 
   if (!isOpen) return null;
 
@@ -357,6 +361,77 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
             return <MissionItem key={mission.id} mission={mission} />;
           })}
         </div>
+
+        {/* Claim Rewards Section */}
+        {rewards.totalCubes > 0 && (
+          <div
+            style={{
+              marginTop: "16px",
+              padding: "12px",
+              background: "rgba(0, 255, 0, 0.1)",
+              border: "1px solid rgba(0, 255, 0, 0.3)",
+              borderRadius: "12px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "14px",
+                    color: "#00ff00",
+                    fontWeight: "bold",
+                  }}
+                >
+                  🎁 Rewards Available
+                </p>
+                <p
+                  style={{
+                    margin: "4px 0 0 0",
+                    fontSize: "12px",
+                    color: "#cccccc",
+                  }}
+                >
+                  {rewards.totalCubes} cube{rewards.totalCubes > 1 ? "s" : ""}{" "}
+                  to claim
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const cubesClaimed = claimRewards();
+                  if (cubesClaimed > 0) {
+                    onClaimRewards(cubesClaimed);
+                  }
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #00ff00, #00cc00)",
+                  border: "none",
+                  borderRadius: "8px",
+                  color: "#000000",
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "scale(1.05)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+              >
+                Claim Rewards
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div
