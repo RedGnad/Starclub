@@ -1350,7 +1350,7 @@ function SplinePage() {
         missions={missions}
         completed={completed}
         streak={streak}
-        availableRewards={getAvailableRewards()}
+        availableRewards={getAvailableRewards().totalCubes}
         onClaimMissionRewards={claimRewards}
         onClose={() => {
           console.log(
