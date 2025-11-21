@@ -23,7 +23,7 @@ export class HybridMissionService {
         
         if (response.success && response.data) {
           console.log('✅ Missions loaded from API');
-          return response.data;
+          return response.data as unknown as DailyMissionsState;
         }
       } catch (error) {
         console.warn('⚠️ API failed, falling back to localStorage:', error);
