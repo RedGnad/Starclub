@@ -369,7 +369,15 @@ export const MissionPanel: React.FC<MissionPanelProps> = ({
             textAlign: "center",
           }}
         >
-          Les missions se renouvellent chaque jour à minuit
+          <div
+            style={{
+              fontSize: "12px",
+              color: "rgba(255, 255, 255, 0.6)",
+              textAlign: "center",
+            }}
+          >
+            Daily missions reset at midnight UTC
+          </div>
         </div>
       </div>
     </div>

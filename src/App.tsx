@@ -131,6 +131,7 @@ function SplinePage() {
     resetMission,
     trackPosition,
     trackDappClick,
+    trackKeyCombo,
     completeDailyCheckin,
     markCubeCompleted,
     checkAllMissionsCompleted,
@@ -168,7 +169,12 @@ function SplinePage() {
 
       // Déclencher le modal pour la prochaine mission
       setTimeout(() => {
-        triggerCubeMission([nextMission]);
+        const result = triggerCubeMission([nextMission]);
+        // Vérifier si Cube Activator vient d'être complétée
+        if (result && result.giveCube) {
+          console.log(`🎯 Mission ${result.reason} completed! Awarding 1 cube`);
+          incrementCubes();
+        }
       }, 100);
 
       return remainingQueue;
@@ -204,11 +210,9 @@ function SplinePage() {
 
       // NOUVEAU: Marquer la mission quotidienne "Cube Master" comme complétée
       console.log("🎯 Marking cube completion mission as completed");
-      const shouldGiveCube = markCubeCompleted();
-      if (shouldGiveCube) {
-        console.log(
-          "🎲 Toutes les missions quotidiennes complétées via cube mission !"
-        );
+      const result = markCubeCompleted();
+      if (result.giveCube) {
+        console.log(`🎲 Mission ${result.reason} completed! Awarding 1 cube`);
         incrementCubes(); // Donner le cube ici
       }
     },
@@ -934,21 +938,6 @@ function SplinePage() {
               if (activeVerifications.length > 0) {
                 console.log(
                   "� Verification en cours, ajout à la queue:",
-                  randomDapp.name
-                );
-                setMissionQueue((prev) => [...prev, randomDapp]);
-              } else {
-                console.log(
-                  "🚀 Démarrage direct de la mission:",
-                  randomDapp.name
-                );
-                setCurrentMission(randomDapp);
-                triggerCubeMission([randomDapp]);
-              }
-            } else {
-              console.log("❌ Aucune SuperDApp disponible");
-            }
-          }
         }
 
         // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
@@ -1234,12 +1223,12 @@ function SplinePage() {
           console.log("📅 Daily check-in triggered!");
 
           // Utiliser la fonction du hook pour compléter la mission
-          const shouldGiveCube = completeDailyCheckin();
+          const result = completeDailyCheckin();
 
-          // Si toutes les missions quotidiennes sont complétées, donner le cube
-          if (shouldGiveCube) {
+          // NOUVEAU: chaque mission donne 1 cube
+          if (result.giveCube) {
             console.log(
-              "🎯 Toutes les missions quotidiennes complétées ! Attribution du cube..."
+              `🎯 Mission ${result.reason} completed! Awarding 1 cube`
             );
             incrementCubes();
           }

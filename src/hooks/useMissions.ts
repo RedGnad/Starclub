@@ -104,16 +104,25 @@ export function useMissions() {
     
     console.log('🎯 CUBE MISSION TRIGGERED:', randomDapp.name);
     
+    // Track Cube Activator mission (ouvrir le modal) - NOUVEAU: utilise la fonction dédiée
+    const result = markCubeActivatorProgress();
+    if (result.giveCube) {
+      console.log('🎯 Cube Activator completed! Trigger cube reward.');
+      // Cette information sera utilisée par le parent
+    }
+    
     setActiveMission(randomDapp);
     setMissionTriggered(true);
-  }, []);
+    
+    return result; // Retourner l'info si un cube doit être donné
+  }, [markCubeActivatorProgress]);
 
   const resetMission = useCallback(() => {
     setMissionTriggered(false);
     setActiveMission(null);
   }, []);
 
-  // Daily Check-in completion
+  // Daily Check-in completion - NOUVEAU: donne 1 cube immédiatement
   const completeDailyCheckin = useCallback(() => {
     console.log("📅 Completing daily check-in...");
     
@@ -136,17 +145,45 @@ export function useMissions() {
     
     setMissionsState(updatedState);
     
-    // Vérifier si toutes les missions sont complétées pour donner le cube
-    const allCompleted = updatedState.missions.every(m => m.completed);
-    if (allCompleted && !updatedState.completed) {
-      console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
-      return true; // Signal pour donner le cube
-    }
-    
-    return false;
+    // NOUVEAU: donner 1 cube pour cette mission
+    console.log("🎯 Daily check-in completed! Awarding 1 cube");
+    return { giveCube: true, reason: 'daily_checkin' };
   }, [missionsState.currentDate]);
 
-  // Marquer une mission cube comme complétée
+  // Marquer la mission Cube Activator comme progressée
+  const markCubeActivatorProgress = useCallback(() => {
+    console.log("🎯 Marking Cube Activator progress");
+    
+    const updatedState = MissionStorage.updateMissionProgress(
+      `cube_modal_opens_${missionsState.currentDate}`,
+      (mission) => {
+        const newCurrent = Math.min(mission.current + 1, mission.target);
+        const isJustCompleted = newCurrent === mission.target && !mission.completed;
+        
+        console.log(`🎯 Cube Activator: ${newCurrent}/${mission.target}`);
+        
+        return {
+          ...mission,
+          current: newCurrent,
+          completed: newCurrent >= mission.target,
+          completedCombos: newCurrent >= mission.target ? [['cube_modal_opened']] : mission.completedCombos || [],
+        };
+      }
+    );
+    
+    setMissionsState(updatedState);
+    
+    // Vérifier si la mission vient d'être complétée
+    const mission = updatedState.missions.find(m => m.id === `cube_modal_opens_${missionsState.currentDate}`);
+    if (mission && mission.completed && mission.current === mission.target) {
+      console.log("🎯 Cube Activator completed! Awarding 1 cube");
+      return { giveCube: true, reason: 'cube_activator' };
+    }
+    
+    return { giveCube: false };
+  }, [missionsState.currentDate]);
+
+  // Marquer une mission cube comme complétée - NOUVEAU: donne 1 cube immédiatement
   const markCubeCompleted = useCallback(() => {
     console.log("🎯 Marking cube mission as completed");
     
@@ -170,14 +207,9 @@ export function useMissions() {
     
     setMissionsState(updatedState);
     
-    // Vérifier si toutes les missions sont complétées pour donner le cube
-    const allCompleted = updatedState.missions.every(m => m.completed);
-    if (allCompleted && !updatedState.completed) {
-      console.log("🎯 TOUTES LES MISSIONS QUOTIDIENNES COMPLÉTÉES ! Cube mérité !");
-      return true; // Signal pour donner le cube
-    }
-    
-    return false;
+    // NOUVEAU: donner 1 cube pour cette mission
+    console.log("🎯 Cube Master completed! Awarding 1 cube");
+    return { giveCube: true, reason: 'cube_master' };
   }, [missionsState.currentDate]);
 
   // Fonction pour vérifier si toutes les missions sont complétées (sans modification d'état)
