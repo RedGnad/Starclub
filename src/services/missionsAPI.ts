@@ -22,6 +22,17 @@ export interface MissionProgressResponse {
   error?: string;
 }
 
+export interface DailyCheckinResponse {
+  success: boolean;
+  data?: {
+    alreadyCompleted: boolean;
+    cubeEarned: boolean;
+    newCubeCount?: number;
+    message: string;
+  };
+  error?: string;
+}
+
 export interface MissionsResponse {
   success: boolean;
   data?: any[];
@@ -111,5 +122,35 @@ export class MissionsAPI {
         alreadyCompleted: true
       }
     };
+  }
+
+  // Daily Check-in sécurisé - une seule fois par jour
+  static async dailyCheckin(address: string): Promise<DailyCheckinResponse> {
+    try {
+      console.log('📅 Calling secure daily-checkin API for:', address);
+      
+      const response = await fetch(`${BACKEND_BASE_URL}/api/missions-simple/${address}/daily-checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+
+      console.log('✅ Daily checkin response:', data);
+      return data;
+      
+    } catch (error) {
+      console.error('❌ Error in daily checkin:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 }

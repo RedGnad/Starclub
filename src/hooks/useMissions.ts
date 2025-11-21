@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { DailyMissionsState, AnyMission } from '../types/missions';
-import { MissionsAPI } from '../services/missionsAPI';
+import { MissionsAPI, type DailyCheckinResponse } from '../services/missionsAPI';
 
 export function useMissions(userAddress?: string) {
   console.log('🔍 DEBUG useMissions called with userAddress:', userAddress);
@@ -33,6 +33,10 @@ export function useMissions(userAddress?: string) {
       
       if (response.success && response.data) {
         console.log('✅ Missions loaded from API:', response.data);
+      if (response.data.missions) {
+        console.log('🔍 DEBUG missions array:', response.data.missions);
+        console.log('🔍 DEBUG first mission:', response.data.missions[0]);
+      }
         setMissionsState(response.data as unknown as DailyMissionsState);
       } else {
         throw new Error(response.error || 'Failed to load missions');
@@ -174,41 +178,37 @@ export function useMissions(userAddress?: string) {
     setActiveMission(null);
   }, []);
 
-  // Daily Check-in completion
-  const completeDailyCheckin = useCallback(async () => {
-    console.log("📅 Completing daily check-in...");
+  // Daily Check-in sécurisé - nouvelle version
+  const completeDailyCheckin = useCallback(async (): Promise<{ giveCube: boolean; reason: string }> => {
+    console.log("📅 Starting secure daily check-in...");
     
     if (!userAddress) {
       console.error('❌ Cannot complete daily check-in without user address');
       return { giveCube: false, reason: 'no_address' };
     }
     
-    // Vérifier si déjà complété AVANT l'API call
-    const today = missionsState.currentDate;
-    const dailyMission = missionsState.missions.find(m => 
-      (m as any).missionType === 'daily_checkin' && (m as any).title === 'Daily Check-in'
-    );
-    
-    console.log('🔍 DEBUG daily mission found:', dailyMission);
-    console.log('🔍 DEBUG daily mission completed:', dailyMission?.completed);
-    console.log('🔍 DEBUG daily mission current:', dailyMission?.current);
-    console.log('🔍 DEBUG daily mission target:', dailyMission?.target);
-    
-    if (dailyMission && dailyMission.completed) {
-      console.log("⚠️ Daily check-in already completed today!");
-      return { giveCube: false, reason: 'already_completed' };
+    try {
+      const response = await MissionsAPI.dailyCheckin(userAddress);
+      
+      if (response.success && response.data) {
+        console.log('✅ Daily checkin result:', response.data);
+        
+        // Recharger les missions après le daily check-in
+        await loadMissions();
+        
+        return { 
+          giveCube: response.data.cubeEarned, 
+          reason: response.data.alreadyCompleted ? 'already_completed' : 'daily_checkin_success' 
+        };
+      } else {
+        console.error('❌ Daily checkin failed:', response.error);
+        return { giveCube: false, reason: response.error || 'api_failed' };
+      }
+    } catch (error) {
+      console.error('❌ Daily checkin error:', error);
+      return { giveCube: false, reason: 'exception' };
     }
-    
-    // Seulement si pas complété
-    const result = await updateMissionProgress(`daily_checkin_${today}`, 1);
-    
-    if (result?.justCompleted) {
-      console.log("🎯 Daily check-in completed! Awarding 1 cube");
-      return { giveCube: true, reason: 'daily_checkin' };
-    }
-    
-    return { giveCube: false, reason: 'api_failed' };
-  }, [userAddress, missionsState.currentDate, missionsState.missions, updateMissionProgress]);
+  }, [userAddress, loadMissions]);
 
   // Marquer une mission cube comme complétée
   const markCubeCompleted = useCallback(async () => {

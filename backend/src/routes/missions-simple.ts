@@ -140,4 +140,92 @@ router.post('/:address/progress', async (req, res) => {
   }
 });
 
+// POST /api/missions-simple/:address/daily-checkin - Daily check-in sécurisé
+router.post('/:address/daily-checkin', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 1. Récupérer l'utilisateur
+    const user = await prisma.$queryRaw`
+      SELECT * FROM users WHERE address = ${address.toLowerCase()} LIMIT 1
+    `;
+    
+    if (!user || (user as any[]).length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    const userId = (user as any[])[0].id;
+    
+    // 2. Vérifier si daily check-in déjà fait aujourd'hui
+    const existingCheckin = await prisma.$queryRaw`
+      SELECT * FROM daily_missions 
+      WHERE "userId" = ${userId} 
+        AND date = ${today} 
+        AND "missionId" LIKE 'daily_checkin_%'
+        AND completed = true
+      LIMIT 1
+    `;
+    
+    if (existingCheckin && (existingCheckin as any[]).length > 0) {
+      return res.json({
+        success: true,
+        data: {
+          alreadyCompleted: true,
+          cubeEarned: false,
+          message: 'Daily check-in already completed today'
+        }
+      });
+    }
+    
+    // 3. Transaction : Créer/Mettre à jour daily check-in + Ajouter cube
+    const result = await prisma.$transaction(async (tx) => {
+      // Mettre à jour ou créer la mission daily check-in
+      await tx.$executeRaw`
+        INSERT INTO daily_missions ("userId", "missionId", date, title, description, target, progress, completed, "missionType", "createdAt", "updatedAt")
+        VALUES (${userId}, ${'daily_checkin_' + today}, ${today}, 'Daily Check-in', 'Connect and open the application', 1, 1, true, 'daily_checkin', NOW(), NOW())
+        ON CONFLICT ("userId", "missionId", date) 
+        DO UPDATE SET 
+          progress = 1, 
+          completed = true, 
+          "updatedAt" = NOW()
+      `;
+      
+      // Ajouter 1 cube
+      await tx.$executeRaw`
+        UPDATE users 
+        SET cubes = cubes + 1, "updatedAt" = NOW() 
+        WHERE id = ${userId}
+      `;
+      
+      // Récupérer le nouveau nombre de cubes
+      const updatedUser = await tx.$queryRaw`
+        SELECT cubes FROM users WHERE id = ${userId} LIMIT 1
+      `;
+      
+      return (updatedUser as any[])[0];
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        alreadyCompleted: false,
+        cubeEarned: true,
+        newCubeCount: result.cubes,
+        message: 'Daily check-in completed! +1 cube earned'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Daily check-in error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export const simpleMissionsRoutes = router;
