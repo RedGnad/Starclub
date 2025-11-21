@@ -1353,7 +1353,6 @@ function SplinePage() {
         streak={streak}
         availableRewards={getAvailableRewards().totalCubes}
         onClaimMissionRewards={claimRewards}
-        onDailyCheckin={completeDailyCheckin}
         onClaimRewards={(cubes) => {
           console.log(`🎁 Claiming ${cubes} cubes`);
           // Logic handled by onClaimMissionRewards
