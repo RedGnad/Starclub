@@ -938,6 +938,7 @@ function SplinePage() {
               // TODO: Re-implement cube mission logic if needed
             }
           }
+        }
 
         // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
         const newDiscoveryState = sphere5Near || sphere7Near || sphere8Near;
