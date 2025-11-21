@@ -67,4 +67,55 @@ router.get('/:address', async (req, res) => {
   }
 });
 
+// POST /api/missions-simple/:address/progress - Mettre à jour le progrès
+router.post('/:address/progress', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const { missionId, increment = 1 } = req.body;
+    
+    // 1. Récupérer l'utilisateur
+    const user = await prisma.$queryRaw`
+      SELECT * FROM users WHERE address = ${address.toLowerCase()} LIMIT 1
+    `;
+    
+    if (!user || (user as any[]).length === 0) {
+      throw new Error('User not found');
+    }
+    
+    const userId = (user as any[])[0].id;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 2. Mettre à jour la mission en SQL direct
+    await prisma.$executeRaw`
+      UPDATE daily_missions 
+      SET progress = progress + ${increment}, 
+          "updatedAt" = NOW(),
+          completed = CASE WHEN (progress + ${increment}) >= target THEN true ELSE completed END
+      WHERE "userId" = ${userId} AND date = ${today} AND "missionId" = ${missionId}
+    `;
+    
+    // 3. Récupérer la mission mise à jour
+    const updatedMission = await prisma.$queryRaw`
+      SELECT * FROM daily_missions 
+      WHERE "userId" = ${userId} AND date = ${today} AND "missionId" = ${missionId}
+      LIMIT 1
+    `;
+    
+    res.json({
+      success: true,
+      data: {
+        mission: (updatedMission as any[])[0],
+        justCompleted: (updatedMission as any[])[0]?.completed === true,
+      }
+    });
+    
+  } catch (error) {
+    console.error('Update mission progress error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export const simpleMissionsRoutes = router;

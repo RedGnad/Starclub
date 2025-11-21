@@ -79,7 +79,7 @@ export class MissionsAPI {
     missionId: string, 
     increment: number = 1
   ): Promise<MissionProgressResponse> {
-    return this.request(`/api/missions/${address}/progress`, {
+    return this.request(`/api/missions-simple/${address}/progress`, {
       method: 'POST',
       body: JSON.stringify({ missionId, increment }),
     });
