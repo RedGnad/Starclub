@@ -264,8 +264,22 @@ function SplinePage() {
   // Wrapper pour vérifier les limites avant d'ouvrir un cube
   const triggerCubeMissionWithLimit = React.useCallback(
     async (missions: any[]) => {
+      console.log("🔍 DEBUG triggerCubeMissionWithLimit:", {
+        address,
+        signed,
+        isAuthenticated,
+      });
+
       if (!address || !signed || !isAuthenticated) {
         console.log("⚠️ User not authenticated, skipping cube limit check");
+        console.log(
+          "🔍 DEBUG: address:",
+          address,
+          "signed:",
+          signed,
+          "isAuthenticated:",
+          isAuthenticated
+        );
         triggerCubeMission(missions, address);
         return;
       }
