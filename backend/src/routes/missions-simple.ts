@@ -27,12 +27,6 @@ router.get('/:address', async (req, res) => {
     
     const userId = (user as any[])[0].id;
     
-    // NETTOYAGE: Supprimer les doublons existants pour cet utilisateur/date
-    await prisma.$executeRaw`
-      DELETE FROM daily_missions 
-      WHERE "userId" = ${userId} AND date = ${today}
-    `;
-    
     // 3. Créer 4 missions directement en SQL (avec vérification d'existence)
     const missions = [
       { id: `check_in_${today}`, type: 'daily_checkin', title: 'Daily Check-in', desc: 'Connect and open the application', target: 1 },
@@ -159,13 +153,14 @@ router.post('/:address/daily-checkin', async (req, res) => {
     }
     
     const userId = (user as any[])[0].id;
+    const missionId = `check_in_${today}`;
     
     // 2. Vérifier si daily check-in déjà fait aujourd'hui
     const existingCheckin = await prisma.$queryRaw`
       SELECT * FROM daily_missions 
       WHERE "userId" = ${userId} 
         AND date = ${today} 
-        AND "missionId" LIKE 'daily_checkin_%'
+        AND "missionId" = ${missionId}
         AND completed = true
       LIMIT 1
     `;
@@ -181,13 +176,35 @@ router.post('/:address/daily-checkin', async (req, res) => {
       });
     }
     
-    // 3. Transaction : Créer daily check-in + Ajouter cube
+    // 3. Transaction : marquer la mission daily check-in comme complétée + ajouter un cube
     const result = await prisma.$transaction(async (tx) => {
-      // Créer la mission daily check-in (pas besoin de ON CONFLICT car on a déjà vérifié)
-      await tx.$executeRaw`
-        INSERT INTO daily_missions ("userId", "missionId", date, title, description, target, progress, completed, "missionType", "createdAt", "updatedAt")
-        VALUES (${userId}, ${'daily_checkin_' + today}, ${today}, 'Daily Check-in', 'Connect and open the application', 1, 1, true, 'daily_checkin', NOW(), NOW())
+      // Vérifier si la mission existe déjà
+      const existingMission = await tx.$queryRaw`
+        SELECT * FROM daily_missions 
+        WHERE "userId" = ${userId} 
+          AND date = ${today} 
+          AND "missionId" = ${missionId}
+        LIMIT 1
       `;
+
+      if (!existingMission || (existingMission as any[]).length === 0) {
+        // Créer la mission si elle n'existe pas encore
+        await tx.$executeRaw`
+          INSERT INTO daily_missions (id, "userId", date, "missionId", "missionType", title, description, target, progress, completed, "createdAt", "updatedAt")
+          VALUES (${missionId}, ${userId}, ${today}, ${missionId}, 'daily_checkin', 'Daily Check-in', 'Connect and open the application', 1, 1, true, NOW(), NOW())
+        `;
+      } else {
+        // Mettre à jour la mission existante
+        await tx.$executeRaw`
+          UPDATE daily_missions 
+          SET progress = 1,
+              completed = true,
+              "updatedAt" = NOW()
+          WHERE "userId" = ${userId} 
+            AND date = ${today} 
+            AND "missionId" = ${missionId}
+        `;
+      }
       
       // Ajouter 1 cube
       await tx.$executeRaw`
@@ -209,7 +226,7 @@ router.post('/:address/daily-checkin', async (req, res) => {
       data: {
         alreadyCompleted: false,
         cubeEarned: true,
-        newCubeCount: result.cubes,
+        newCubeCount: (result as any).cubes,
         message: 'Daily check-in completed! +1 cube earned'
       }
     });
