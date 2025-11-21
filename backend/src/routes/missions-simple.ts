@@ -27,6 +27,12 @@ router.get('/:address', async (req, res) => {
     
     const userId = (user as any[])[0].id;
     
+    // NETTOYAGE: Supprimer les doublons existants pour cet utilisateur/date
+    await prisma.$executeRaw`
+      DELETE FROM daily_missions 
+      WHERE "userId" = ${userId} AND date = ${today}
+    `;
+    
     // 3. Créer 4 missions directement en SQL
     const missions = [
       { id: `check_in_${today}`, type: 'daily_checkin', title: 'Daily Check-in', desc: 'Connect and open the application', target: 1 },
@@ -38,8 +44,8 @@ router.get('/:address', async (req, res) => {
     for (const mission of missions) {
       await prisma.$executeRaw`
         INSERT INTO daily_missions (id, "userId", date, "missionId", "missionType", title, description, target, progress, completed, "createdAt", "updatedAt")
-        VALUES (${`mission_${Date.now()}_${Math.random()}`}, ${userId}, ${today}, ${mission.id}, ${mission.type}, ${mission.title}, ${mission.desc}, ${mission.target}, 0, false, NOW(), NOW())
-        ON CONFLICT DO NOTHING
+        VALUES (${mission.id}, ${userId}, ${today}, ${mission.id}, ${mission.type}, ${mission.title}, ${mission.desc}, ${mission.target}, 0, false, NOW(), NOW())
+        ON CONFLICT ("userId", date, "missionId") DO NOTHING
       `;
     }
     
