@@ -117,4 +117,65 @@ router.get('/create-test-user', async (req, res) => {
   }
 });
 
+// Test spécifique de l'API missions
+router.get('/test-missions/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    console.log('Testing missions for address:', address);
+    
+    // Test 1: Créer l'utilisateur
+    const user = await prisma.user.upsert({
+      where: { address: address.toLowerCase() },
+      update: {},
+      create: { address: address.toLowerCase() }
+    });
+    
+    console.log('User created/found:', user);
+    
+    // Test 2: Créer une mission simple
+    const today = new Date().toISOString().split('T')[0];
+    const missionId = `test_mission_${today}`;
+    
+    const mission = await prisma.dailyMission.upsert({
+      where: {
+        userId_date_missionId: {
+          userId: user.id,
+          date: today,
+          missionId: missionId
+        }
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        date: today,
+        missionId: missionId,
+        missionType: 'test',
+        title: 'Test Mission',
+        description: 'Test description',
+        target: 1,
+        progress: 0,
+        completed: false
+      }
+    });
+    
+    console.log('Mission created:', mission);
+    
+    res.json({
+      success: true,
+      user: user,
+      mission: mission,
+      message: 'Mission system working!'
+    });
+    
+  } catch (error) {
+    console.error('Mission test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+});
+
 export const debugRoutes = router;
