@@ -104,18 +104,13 @@ export function useMissions() {
     
     console.log('🎯 CUBE MISSION TRIGGERED:', randomDapp.name);
     
-    // Track Cube Activator mission (ouvrir le modal) - NOUVEAU: utilise la fonction dédiée
-    const result = markCubeActivatorProgress();
-    if (result.giveCube) {
-      console.log('🎯 Cube Activator completed! Trigger cube reward.');
-      // Cette information sera utilisée par le parent
-    }
+    // NOUVEAU: Tracker l'ouverture du modal cube pour la mission "Cube Activator"
+    console.log('📊 Tracking cube modal opened for mission progress...');
+    trackKeyCombo(['cube_modal_opened']);
     
     setActiveMission(randomDapp);
     setMissionTriggered(true);
-    
-    return result; // Retourner l'info si un cube doit être donné
-  }, [markCubeActivatorProgress]);
+  }, [trackKeyCombo]);
 
   const resetMission = useCallback(() => {
     setMissionTriggered(false);

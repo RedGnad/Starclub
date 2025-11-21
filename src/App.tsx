@@ -169,12 +169,7 @@ function SplinePage() {
 
       // Déclencher le modal pour la prochaine mission
       setTimeout(() => {
-        const result = triggerCubeMission([nextMission]);
-        // Vérifier si Cube Activator vient d'être complétée
-        if (result && result.giveCube) {
-          console.log(`🎯 Mission ${result.reason} completed! Awarding 1 cube`);
-          incrementCubes();
-        }
+        triggerCubeMission([nextMission]);
       }, 100);
 
       return remainingQueue;
@@ -934,10 +929,10 @@ function SplinePage() {
                   Math.floor(Math.random() * currentSuperDapps.length)
                 ];
 
-              // Mission cube logic commented out for now
-              // TODO: Re-implement cube mission logic if needed
-            }
-          }
+              // Vérifier si une vérification est en cours
+              if (activeVerifications.length > 0) {
+                console.log(
+                  "� Verification en cours, ajout à la queue:",
         }
 
         // RÈGLE STRICTE avec stabilisation : Discovery accessible UNIQUEMENT si Sphere 5 OU Sphere 7 OU Sphere 8 est à y=-1000
