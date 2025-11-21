@@ -161,7 +161,10 @@ export function useMissions() {
           ...mission,
           current: newCurrent,
           completed: newCurrent >= mission.target,
-          completedCombos: newCurrent >= mission.target ? [['cube_modal_opened']] : mission.completedCombos || [],
+          // Assigner completedCombos uniquement si c'est une mission key_combo
+          ...(mission.type === 'key_combo' ? {
+            completedCombos: newCurrent >= mission.target ? [['cube_modal_opened']] : (mission as any).completedCombos || [],
+          } : {}),
         };
       }
     );
